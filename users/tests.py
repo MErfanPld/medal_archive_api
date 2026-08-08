@@ -69,7 +69,7 @@ class UsersAuthTests(TestCase):
         url = reverse('users:login')
         resp = self.client.post(url, {'username': 'nosuch', 'password': 'Whatever12!'})
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('\u0646\u0627\u0645 \u06a9\u0627\u0631\u0628\u0631\u06cc \u06cc\u0627 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0627\u0634\u062a\u0628\u0627\u0647 \u0627\u0633\u062a', str(resp.data))
+        self.assertIn('نام کاربری یا رمز عبور اشتباه است', str(resp.data))
 
     def test_login_inactive_generic_message(self):
         User.objects.create_user(
@@ -79,7 +79,7 @@ class UsersAuthTests(TestCase):
         resp = self.client.post(url, {'username': 'inactive', 'password': 'InactivePass1!'})
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         # F5: same generic message (no distinct inactive text)
-        self.assertIn('\u0646\u0627\u0645 \u06a9\u0627\u0631\u0628\u0631\u06cc \u06cc\u0627 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0627\u0634\u062a\u0628\u0627\u0647 \u0627\u0633\u062a', str(resp.data))
+        self.assertIn('نام کاربری یا رمز عبور اشتباه است', str(resp.data))
 
     def test_login_locked_generic_message(self):
         user = User.objects.get(username='plain')
@@ -90,7 +90,7 @@ class UsersAuthTests(TestCase):
         url = reverse('users:login')
         resp = self.client.post(url, {'username': 'plain', 'password': 'PlainPass123!'})
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('\u0646\u0627\u0645 \u06a9\u0627\u0631\u0628\u0631\u06cc \u06cc\u0627 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0627\u0634\u062a\u0628\u0627\u0647 \u0627\u0633\u062a', str(resp.data))
+        self.assertIn('نام کاربری یا رمز عبور اشتباه است', str(resp.data))
 
     def test_me_requires_auth(self):
         url = reverse('users:me')
