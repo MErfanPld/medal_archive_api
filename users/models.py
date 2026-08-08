@@ -150,8 +150,8 @@ class User(AbstractBaseUser, PermissionsMixin):
             return set(Permission.objects.values_list('codename', flat=True))
         return set(
             Permission.objects.filter(
-                roles__in=self.roles.all(), roles__is_active=True
-            ).values_list('codename', flat=True)
+                roles__in=self.roles.filter(is_active=True),
+            ).values_list('codename', flat=True).distinct()
         )
 
     def has_custom_perm(self, codename: str) -> bool:
