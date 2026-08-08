@@ -124,10 +124,11 @@ class InviteLinkCreateAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        email = (data.get('email') or '').strip() or None
         user = User.objects.create_user(
             username=data['username'],
             password=data['password'],
-            email=data.get('email', ''),
+            email=email,
             is_active=False,
             created_by=request.user,
         )
