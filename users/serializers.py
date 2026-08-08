@@ -101,7 +101,13 @@ class LoginSerializer(serializers.Serializer):
         if not user_obj.is_active:
             raise serializers.ValidationError('حساب کاربری فعال نیست.')
 
-        user = authenticate(request=request, username=username, password=password)
+        # Use the canonical username from the DB so case differences do not
+        # cause a false authentication failure after an iexact lookup.
+        user = authenticate(
+            request=request,
+            username=user_obj.username,
+            password=password,
+        )
         if user is None:
             user_obj.register_failed_attempt()
             raise serializers.ValidationError('نام کاربری یا رمز عبور اشتباه است.')
@@ -128,7 +134,7 @@ class InviteLinkCreateSerializer(serializers.Serializer):
     فقط ادمین این را پر می‌کند: username و password را خودش تعیین/تایید می‌کند.
     """
     username = serializers.CharField(max_length=150)
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, min_length=10)
     email = serializers.EmailField(required=False, allow_blank=True)
     role_ids = serializers.PrimaryKeyRelatedField(
         queryset=Role.objects.all(), many=True, required=False
