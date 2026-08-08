@@ -1,0 +1,306 @@
+from django.conf import settings
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from rest_framework import generics, status, permissions as drf_permissions, filters as drf_filters
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
+from .models import User, Role, Permission, InviteLink, generate_raw_token, hash_token, UserRole
+from .permissions import IsAdminRole
+from .throttles import LoginRateThrottle, InviteConsumeThrottle, InviteCreateThrottle
+from .serializers import (
+    LoginSerializer, UserSerializer, RoleSerializer, PermissionSerializer,
+    InviteLinkCreateSerializer, UserRoleAssignSerializer, TokenResponseMixin,
+    LogoutSerializer, UserActivateSerializer, MessageResponseSerializer,
+    TokenPairResponseSerializer, InviteLinkCreateResponseSerializer,
+)
+
+
+def get_client_ip(request):
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
+# ---------------------------------------------------------------------------
+# احراز هویت
+# ---------------------------------------------------------------------------
+
+class LoginAPIView(TokenResponseMixin, APIView):
+    """
+    POST /api/users/login/
+    تنها راه ورود به سیستم.
+    """
+    permission_classes = [drf_permissions.AllowAny]
+    throttle_classes = [LoginRateThrottle]
+
+    @extend_schema(
+        tags=['Auth'],
+        summary='ورود کاربر',
+        description='تنها راه ورود به سیستم؛ هیچ endpoint ثبت‌نام عمومی‌ای وجود ندارد.',
+        request=LoginSerializer,
+        responses={200: TokenPairResponseSerializer},
+    )
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+
+        user.last_login = timezone.now()
+        user.last_login_ip = get_client_ip(request)
+        user.save(update_fields=['last_login', 'last_login_ip'])
+
+        tokens = self.build_tokens(user)
+        return Response({**tokens, 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
+
+
+class LogoutAPIView(APIView):
+    """POST /api/users/logout/ -> باطل کردن refresh token"""
+    permission_classes = [drf_permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=['Auth'],
+        summary='خروج کاربر',
+        description='refresh token را بلاک‌لیست می‌کند.',
+        request=LogoutSerializer,
+        responses={205: None, 400: MessageResponseSerializer},
+    )
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response({'detail': 'refresh token الزامی است.'}, status=400)
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            return Response({'detail': 'توکن نامعتبر است.'}, status=400)
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+
+
+class MeAPIView(APIView):
+    """GET /api/users/me/"""
+    permission_classes = [drf_permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=['Auth'],
+        summary='اطلاعات کاربر جاری',
+        responses={200: UserSerializer},
+    )
+    def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+
+# ---------------------------------------------------------------------------
+# لینک دعوت یک‌بار مصرف
+# ---------------------------------------------------------------------------
+
+class InviteLinkCreateAPIView(APIView):
+    """
+    POST /api/users/invite/
+    فقط ادمین. username/password را خود ادمین تعیین و تایید می‌کند.
+    """
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+    throttle_classes = [InviteCreateThrottle]
+
+    @extend_schema(
+        tags=['Invites'],
+        summary='ساخت لینک دعوت یک‌بار مصرف (فقط ادمین)',
+        description=(
+            'یک کاربر غیرفعال + یک لینک یک‌بار مصرف می‌سازد. '
+            'توکن خام فقط همین یک بار در پاسخ برمی‌گردد؛ در دیتابیس فقط هش آن ذخیره می‌شود.'
+        ),
+        request=InviteLinkCreateSerializer,
+        responses={201: InviteLinkCreateResponseSerializer},
+    )
+    @transaction.atomic
+    def post(self, request):
+        serializer = InviteLinkCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        user = User.objects.create_user(
+            username=data['username'],
+            password=data['password'],
+            email=data.get('email', ''),
+            is_active=False,
+            created_by=request.user,
+        )
+
+        for role in data.get('role_ids', []):
+            UserRole.objects.create(user=user, role=role, assigned_by=request.user)
+
+        raw_token = generate_raw_token()
+        expires_at = timezone.now() + timezone.timedelta(hours=data['expires_in_hours'])
+
+        invite = InviteLink.objects.create(
+            user=user,
+            token_hash=hash_token(raw_token),
+            created_by=request.user,
+            expires_at=expires_at,
+            created_ip=get_client_ip(request),
+        )
+
+        frontend_base = getattr(settings, 'INVITE_LINK_FRONTEND_URL', '')
+        invite_url = f'{frontend_base}?token={raw_token}' if frontend_base else raw_token
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'invite_url': invite_url,
+            'token': raw_token,
+            'expires_at': invite.expires_at,
+            'warning': 'این توکن فقط همین یک‌بار نمایش داده می‌شود. جای دیگری ذخیره نشده است.',
+        }, status=status.HTTP_201_CREATED)
+
+
+class InviteLinkConsumeAPIView(TokenResponseMixin, APIView):
+    """
+    POST /api/users/invite/<token>/consume/
+    عمومی (بدون نیاز به لاگین). لینک را یک‌بار مصرف می‌کند و JWT برمی‌گرداند.
+    """
+    permission_classes = [drf_permissions.AllowAny]
+    throttle_classes = [InviteConsumeThrottle]
+
+    @extend_schema(
+        tags=['Invites'],
+        summary='مصرف لینک دعوت (عمومی، بدون نیاز به لاگین)',
+        description='حساب کاربری را فعال می‌کند و توکن‌های JWT (ورود خودکار اول) برمی‌گرداند.',
+        parameters=[
+            OpenApiParameter(
+                name='token', location=OpenApiParameter.PATH, type=OpenApiTypes.STR,
+                description='توکن خامی که در پاسخ ساخت لینک دعوت برگشته بود.'
+            ),
+        ],
+        request=None,
+        responses={
+            200: TokenPairResponseSerializer,
+            404: MessageResponseSerializer,
+            410: MessageResponseSerializer,
+        },
+    )
+    @transaction.atomic
+    def post(self, request, token):
+        token_hash = hash_token(token)
+        try:
+            invite = InviteLink.objects.select_for_update().select_related('user').get(
+                token_hash=token_hash
+            )
+        except InviteLink.DoesNotExist:
+            return Response({'detail': 'لینک نامعتبر است.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if invite.is_used:
+            return Response({'detail': 'این لینک قبلاً استفاده شده است.'}, status=status.HTTP_410_GONE)
+
+        if invite.is_expired:
+            return Response({'detail': 'این لینک منقضی شده است.'}, status=status.HTTP_410_GONE)
+
+        user = invite.user
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+
+        invite.is_used = True
+        invite.used_at = timezone.now()
+        invite.used_ip = get_client_ip(request)
+        invite.save(update_fields=['is_used', 'used_at', 'used_ip'])
+
+        tokens = self.build_tokens(user)
+        return Response({
+            **tokens,
+            'user': UserSerializer(user).data,
+            'detail': 'حساب کاربری با موفقیت فعال شد.',
+        }, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# مدیریت کاربران (ادمین)
+# ---------------------------------------------------------------------------
+
+@extend_schema(tags=['Users'])
+class UserListAPIView(generics.ListAPIView):
+    """GET /api/users/  - فقط ادمین"""
+    serializer_class = UserSerializer
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+    queryset = User.objects.all().prefetch_related('roles')
+    filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter]
+    filterset_fields = ['is_active']
+    search_fields = ['username', 'email']
+
+
+class UserDetailAPIView(generics.RetrieveAPIView):
+    """
+    GET /api/users/<id>/     - جزئیات کاربر
+    PATCH /api/users/<id>/   - فقط فعال/غیرفعال کردن کاربر (is_active)
+    فقط ادمین.
+    """
+    serializer_class = UserSerializer
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+    queryset = User.objects.all().prefetch_related('roles')
+
+    @extend_schema(tags=['Users'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=['Users'],
+        summary='فعال/غیرفعال کردن کاربر',
+        request=UserActivateSerializer,
+        responses={200: UserSerializer},
+    )
+    def patch(self, request, *args, **kwargs):
+        user = self.get_object()
+        if 'is_active' in request.data:
+            user.is_active = bool(request.data['is_active'])
+            user.save(update_fields=['is_active'])
+        return Response(UserSerializer(user).data)
+
+
+class UserRoleAssignAPIView(APIView):
+    """PUT /api/users/<id>/roles/ - فقط ادمین"""
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+
+    @extend_schema(
+        tags=['Users'],
+        operation_id='users_assign_roles',
+        summary='جایگزینی کامل نقش‌های یک کاربر',
+        request=UserRoleAssignSerializer,
+        responses={200: UserSerializer},
+    )
+    def put(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        serializer = UserRoleAssignSerializer(
+            instance=user, data=request.data, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(user).data)
+
+
+# ---------------------------------------------------------------------------
+# ACL: نقش‌ها و مجوزها (ادمین)
+# ---------------------------------------------------------------------------
+
+@extend_schema(tags=['ACL'])
+class RoleListCreateAPIView(generics.ListCreateAPIView):
+    serializer_class = RoleSerializer
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+    queryset = Role.objects.all().prefetch_related('permissions')
+
+
+@extend_schema(tags=['ACL'])
+class RoleDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = RoleSerializer
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+    queryset = Role.objects.all().prefetch_related('permissions')
+
+
+@extend_schema(tags=['ACL'])
+class PermissionListAPIView(generics.ListAPIView):
+    """مجوزها معمولاً از طریق data migration/seed ساخته می‌شوند؛ اینجا فقط لیست می‌شوند."""
+    serializer_class = PermissionSerializer
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
+    queryset = Permission.objects.all()
