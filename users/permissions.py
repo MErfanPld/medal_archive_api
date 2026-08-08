@@ -1,6 +1,11 @@
 from rest_framework.permissions import BasePermission
 
 
+# Codename of the built-in system administrator role (F2 / F19).
+SYSTEM_ADMIN_ROLE_CODENAME = 'admin'
+SYSTEM_ROLE_CODENAMES = frozenset({SYSTEM_ADMIN_ROLE_CODENAME})
+
+
 class IsAdminRole(BasePermission):
     """فقط کاربرانی که نقش admin دارند یا سوپریوزر هستند"""
     message = 'شما دسترسی ادمین ندارید.'
@@ -9,7 +14,7 @@ class IsAdminRole(BasePermission):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        return bool(user.is_superuser or user.has_role('admin'))
+        return bool(user.is_superuser or user.has_role(SYSTEM_ADMIN_ROLE_CODENAME))
 
 
 class HasCustomPermission(BasePermission):

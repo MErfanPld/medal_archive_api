@@ -14,21 +14,26 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
-    SpectacularRedocView,
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/users/', include("users.urls")),
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path(
-        "api/swagger/",
-        SpectacularSwaggerView.as_view(url_name="schema"),
-        name="swagger-ui",
-    ),
+    path('api/users/', include('users.urls')),
 ]
+
+# F21: expose schema/Swagger only in DEBUG or when explicitly enabled.
+if settings.DEBUG or getattr(settings, 'SPECTACULAR_SERVE_PUBLIC', False):
+    urlpatterns += [
+        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+        path(
+            'api/swagger/',
+            SpectacularSwaggerView.as_view(url_name='schema'),
+            name='swagger-ui',
+        ),
+    ]

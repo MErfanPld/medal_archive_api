@@ -14,6 +14,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,12 +24,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # Prefer environment variables; fall back only for local development.
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-dev-only-change-me-in-production',
-)
+_INSECURE_DEV_SECRET = 'django-insecure-dev-only-change-me-in-production'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _INSECURE_DEV_SECRET)
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in ('1', 'true', 'yes')
+
+# F16: production must never run with the known development SECRET_KEY.
+if not DEBUG and SECRET_KEY in ('', _INSECURE_DEV_SECRET):
+    raise ImproperlyConfigured(
+        'DJANGO_SECRET_KEY must be set to a strong unique value when DEBUG is False.'
+    )
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -109,6 +115,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# Maximum password length accepted by API serializers (DoS / hasher safety).
+PASSWORD_MAX_LENGTH = 128
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
@@ -145,7 +154,8 @@ PASSWORD_HASHERS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # F4: reject inactive / locked users at authentication time.
+        'users.authentication.ActiveUserJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -177,6 +187,16 @@ INVITE_LINK_FRONTEND_URL = os.environ.get(
     'INVITE_LINK_FRONTEND_URL',
     'https://your-frontend.com/activate',
 )
+
+# F9: only honor X-Forwarded-For when the deployment is behind a trusted proxy.
+USE_X_FORWARDED_FOR = os.environ.get(
+    'DJANGO_USE_X_FORWARDED_FOR', 'false'
+).lower() in ('1', 'true', 'yes')
+
+# F21: expose OpenAPI/Swagger publicly only in DEBUG or when explicitly enabled.
+SPECTACULAR_SERVE_PUBLIC = os.environ.get(
+    'DJANGO_SPECTACULAR_SERVE_PUBLIC', 'false'
+).lower() in ('1', 'true', 'yes')
 
 SECURE_SSL_REDIRECT = False
 
