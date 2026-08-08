@@ -226,4 +226,20 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API for Medal & Coin Collection Management',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    # OpenAPI security scheme for Swagger UI Authorize button.
+    # Describes existing JWT Bearer auth; does not change runtime authentication.
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': (
+                    'JWT access token. Obtain via POST /api/users/login/, '
+                    'then paste: Bearer <access_token>'
+                ),
+            }
+        }
+    },
+    'SECURITY': [{'BearerAuth': []}],
 }
