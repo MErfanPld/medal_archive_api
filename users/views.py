@@ -5,16 +5,17 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework import generics, status, permissions as drf_permissions, filters as drf_filters
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from .models import User, Role, Permission, InviteLink, generate_raw_token, hash_token, UserRole
-from .permissions import IsAdminRole
+from .permissions import IsAdminRole, SYSTEM_ADMIN_ROLE_CODENAME, SYSTEM_ROLE_CODENAMES
 from .throttles import LoginRateThrottle, InviteConsumeThrottle, InviteCreateThrottle
 from .serializers import (
-    LoginSerializer, UserSerializer, RoleSerializer, PermissionSerializer,
+    LoginSerializer, UserSerializer, UserMeSerializer, RoleSerializer, PermissionSerializer,
     InviteLinkCreateSerializer, UserRoleAssignSerializer, TokenResponseMixin,
     LogoutSerializer, UserActivateSerializer, MessageResponseSerializer,
     TokenPairResponseSerializer, InviteLinkCreateResponseSerializer,
@@ -22,9 +23,14 @@ from .serializers import (
 
 
 def get_client_ip(request):
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    if xff:
-        return xff.split(',')[0].strip()
+    """
+    F9: Use REMOTE_ADDR by default. Only trust X-Forwarded-For when the
+    deployment explicitly enables USE_X_FORWARDED_FOR (trusted reverse proxy).
+    """
+    if getattr(settings, 'USE_X_FORWARDED_FOR', False):
+        xff = request.META.get('HTTP_X_FORWARDED_FOR')
+        if xff:
+            return xff.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
 
 
@@ -57,17 +63,17 @@ class LoginAPIView(TokenResponseMixin, APIView):
         user.save(update_fields=['last_login', 'last_login_ip'])
 
         tokens = self.build_tokens(user)
-        return Response({**tokens, 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
+        return Response({**tokens, 'user': UserMeSerializer(user).data}, status=status.HTTP_200_OK)
 
 
 class LogoutAPIView(APIView):
-    """POST /api/users/logout/ -> باطل کردن refresh token"""
+    """POST /api/users/logout/ -> باطل کردن refresh token متعلق به request.user"""
     permission_classes = [drf_permissions.IsAuthenticated]
 
     @extend_schema(
         tags=['Auth'],
         summary='خروج کاربر',
-        description='refresh token را بلاک‌لیست می‌کند.',
+        description='refresh token متعلق به کاربر جاری را بلاک‌لیست می‌کند.',
         request=LogoutSerializer,
         responses={205: None, 400: MessageResponseSerializer},
     )
@@ -77,6 +83,18 @@ class LogoutAPIView(APIView):
             return Response({'detail': 'refresh token الزامی است.'}, status=400)
         try:
             token = RefreshToken(refresh_token)
+        except TokenError:
+            return Response({'detail': 'توکن نامعتبر است.'}, status=400)
+
+        # F3: refresh must belong to the authenticated user.
+        token_user_id = token.get('user_id')
+        if token_user_id is None or int(token_user_id) != int(request.user.id):
+            return Response(
+                {'detail': 'این توکن متعلق به کاربر جاری نیست.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
             token.blacklist()
         except TokenError:
             return Response({'detail': 'توکن نامعتبر است.'}, status=400)
@@ -90,10 +108,10 @@ class MeAPIView(APIView):
     @extend_schema(
         tags=['Auth'],
         summary='اطلاعات کاربر جاری',
-        responses={200: UserSerializer},
+        responses={200: UserMeSerializer},
     )
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        return Response(UserMeSerializer(request.user).data)
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +138,9 @@ class InviteLinkCreateAPIView(APIView):
     )
     @transaction.atomic
     def post(self, request):
-        serializer = InviteLinkCreateSerializer(data=request.data)
+        serializer = InviteLinkCreateSerializer(
+            data=request.data, context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -212,7 +232,7 @@ class InviteLinkConsumeAPIView(TokenResponseMixin, APIView):
         tokens = self.build_tokens(user)
         return Response({
             **tokens,
-            'user': UserSerializer(user).data,
+            'user': UserMeSerializer(user).data,
             'detail': 'حساب کاربری با موفقیت فعال شد.',
         }, status=status.HTTP_200_OK)
 
@@ -297,6 +317,20 @@ class RoleDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RoleSerializer
     permission_classes = [drf_permissions.IsAuthenticated, IsAdminRole]
     queryset = Role.objects.all().prefetch_related('permissions')
+
+    def perform_destroy(self, instance):
+        # F19: protect system admin role from deletion (no schema change).
+        if instance.codename in SYSTEM_ROLE_CODENAMES:
+            raise PermissionDenied('نقش سیستمی admin قابل حذف نیست.')
+        instance.delete()
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if instance.codename in SYSTEM_ROLE_CODENAMES:
+            # Disallow flipping is_active off on the system admin role.
+            if 'is_active' in serializer.validated_data and not serializer.validated_data['is_active']:
+                raise ValidationError({'is_active': 'نقش سیستمی admin را نمی‌توان غیرفعال کرد.'})
+        serializer.save()
 
 
 @extend_schema(tags=['ACL'])
