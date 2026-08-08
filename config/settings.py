@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
 
     'users',
+    'categories',
+    'medals',
 ]
 
 MIDDLEWARE = [
