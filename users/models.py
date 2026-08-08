@@ -11,8 +11,8 @@ from .managers import UserManager
 
 class Permission(models.Model):
     """
-    مجوز سطح اپلیکیشن، مستقل از django.contrib.auth.Permission
-    مثال: coin.create ، coin.delete ، user.invite.create
+    Application-level permission, independent of django.contrib.auth.Permission.
+    Example: medals.create, users.view
     """
     codename = models.SlugField(max_length=100, unique=True, verbose_name='کدنام')
     name = models.CharField(max_length=150, verbose_name='نام')
@@ -29,7 +29,7 @@ class Permission(models.Model):
 
 
 class Role(models.Model):
-    """نقش‌های سیستم (ACL) - مثل admin, manager, viewer"""
+    """System roles (ACL) - e.g. admin, curator, viewer"""
     name = models.CharField(max_length=50, unique=True, verbose_name='نام نقش')
     codename = models.SlugField(max_length=50, unique=True, verbose_name='کدنام')
     description = models.TextField(blank=True, verbose_name='توضیحات')
@@ -72,8 +72,8 @@ class RolePermission(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     """
-    کاربر سفارشی. هیچ مسیر ثبت‌نام عمومی وجود ندارد؛
-    کاربران فقط توسط ادمین (از طریق InviteLink) ساخته می‌شوند.
+    Custom user. No public registration path;
+    users are created only by admin via InviteLink.
     """
     username = models.CharField(
         max_length=150, unique=True, db_index=True, verbose_name='نام کاربری'
@@ -89,7 +89,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(
         default=False, verbose_name='فعال'
-    )  # تا مصرف نشدن لینک، غیرفعال است
+    )
     is_staff = models.BooleanField(
         default=False, verbose_name='دسترسی پنل جنگو'
     )
@@ -145,16 +145,42 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.locked_until = None
             self.save(update_fields=['failed_login_attempts', 'locked_until'])
 
-    def get_permission_codenames(self):
+    def get_permission_codenames(self) -> set:
+        """
+        Efficient resolution of effective application permission codenames.
+
+        - Superuser: has_custom_perm short-circuits; no full Permission load.
+        - Non-superuser: one query joining active roles via UserRole → Role → Permission.
+        - Result is cached on the instance for the lifetime of the request/object.
+        """
+        cached = getattr(self, '_permission_codenames_cache', None)
+        if cached is not None:
+            return cached
+
         if self.is_superuser:
-            return set(Permission.objects.values_list('codename', flat=True))
-        return set(
+            result = set()
+            self._permission_codenames_cache = result
+            return result
+
+        result = set(
             Permission.objects.filter(
-                roles__in=self.roles.filter(is_active=True),
-            ).values_list('codename', flat=True).distinct()
+                roles__is_active=True,
+                roles__user_role_set__user_id=self.pk,
+            )
+            .values_list('codename', flat=True)
+            .distinct()
         )
+        self._permission_codenames_cache = result
+        return result
+
+    def clear_permission_cache(self) -> None:
+        """Invalidate cached permission set after role changes."""
+        if hasattr(self, '_permission_codenames_cache'):
+            del self._permission_codenames_cache
 
     def has_custom_perm(self, codename: str) -> bool:
+        if not self.is_authenticated:
+            return False
         if self.is_superuser:
             return True
         return codename in self.get_permission_codenames()
@@ -164,7 +190,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class UserRole(models.Model):
-    """جدول واسط برای ثبت audit trail تخصیص نقش به کاربر"""
+    """Through table for role assignment audit trail."""
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='user_role_set',
         verbose_name='کاربر'
@@ -198,9 +224,7 @@ def hash_token(raw_token: str) -> str:
 
 class InviteLink(models.Model):
     """
-    لینک یک‌بار مصرف برای فعال‌سازی/ورود اول کاربر.
-    فقط ادمین می‌تواند بسازد. توکن خام هرگز در دیتابیس ذخیره نمی‌شود،
-    فقط هش SHA-256 آن (token_hash) ذخیره می‌شود.
+    One-time invite link. Raw token is never stored; only SHA-256 hash.
     """
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='invite_link',
