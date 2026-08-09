@@ -21,8 +21,8 @@ class Permission(models.Model):
 
     class Meta:
         ordering = ['codename']
-        verbose_name = 'مجوز'
-        verbose_name_plural = 'مجوزها'
+        verbose_name = 'دسترسی'
+        verbose_name_plural = 'دسترسی‌ها'
 
     def __str__(self):
         return self.codename
@@ -63,8 +63,8 @@ class RolePermission(models.Model):
 
     class Meta:
         unique_together = ('role', 'permission')
-        verbose_name = 'مجوز نقش'
-        verbose_name_plural = 'مجوزهای نقش'
+        verbose_name = 'دسترسی نقش'
+        verbose_name_plural = 'دسترسی‌های نقش‌ها'
 
     def __str__(self):
         return f'{self.role} -> {self.permission}'
@@ -247,7 +247,7 @@ class InviteLink(models.Model):
     created_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name='آی‌پی سازنده')
 
     class Meta:
-        verbose_name = 'لینک دعوت یک‌بار مصرف'
+        verbose_name = 'لینک دعوت'
         verbose_name_plural = 'لینک‌های دعوت'
         ordering = ['-created_at']
 
