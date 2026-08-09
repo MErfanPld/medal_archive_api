@@ -3,12 +3,16 @@ from django.utils.text import slugify
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=150, unique=True, db_index=True)
-    slug = models.SlugField(max_length=160, unique=True, db_index=True, blank=True)
-    description = models.TextField(blank=True, default='')
-    is_active = models.BooleanField(default=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    name = models.CharField(
+        max_length=150, unique=True, db_index=True, verbose_name='نام دسته‌بندی'
+    )
+    slug = models.SlugField(
+        max_length=160, unique=True, db_index=True, blank=True, verbose_name='شناسه متنی'
+    )
+    description = models.TextField(blank=True, default='', verbose_name='توضیحات')
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name='فعال')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
 
     class Meta:
         ordering = ['name']
