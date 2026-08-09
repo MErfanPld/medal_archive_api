@@ -39,7 +39,7 @@ class Role(models.Model):
         verbose_name='مجوزها'
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
 
     class Meta:
         ordering = ['name']
@@ -91,21 +91,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False, verbose_name='فعال'
     )
     is_staff = models.BooleanField(
-        default=False, verbose_name='دسترسی پنل جنگو'
+        default=False, verbose_name='کارمند'
     )
 
     must_change_password = models.BooleanField(
-        default=False, verbose_name='باید رمز عبور را تغییر دهد'
+        default=False, verbose_name='نیاز به تغییر رمز عبور'
     )
 
     failed_login_attempts = models.PositiveIntegerField(
         default=0, verbose_name='تعداد تلاش‌های ناموفق ورود'
     )
     locked_until = models.DateTimeField(
-        null=True, blank=True, verbose_name='قفل تا تاریخ'
+        null=True, blank=True, verbose_name='زمان پایان قفل حساب'
     )
     last_login_ip = models.GenericIPAddressField(
-        null=True, blank=True, verbose_name='آی‌پی آخرین ورود'
+        null=True, blank=True, verbose_name='آخرین IP ورود'
     )
 
     created_by = models.ForeignKey(
@@ -114,7 +114,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ عضویت')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
 
     objects = UserManager()
 
