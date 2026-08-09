@@ -168,3 +168,15 @@ class Medal(models.Model):
     def __str__(self):
         year_part = f' ({self.year})' if self.year else ''
         return f'{self.name}{year_part}'
+
+
+from .related_models import (  # noqa: E402
+    medal_image_upload_to,
+    medal_file_upload_to,
+    MedalImageType,
+    MedalFileType,
+    MedalImage,
+    MedalFile,
+    MedalPurchaseRecord,
+    MedalValuationRecord,
+)
