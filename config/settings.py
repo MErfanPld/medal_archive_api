@@ -230,7 +230,33 @@ AUTH_USER_MODEL = 'users.User'
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Medal Archive API',
-    'DESCRIPTION': 'API for Medal & Coin Collection Management',
+    'DESCRIPTION': (
+        'API مدیریت آرشیو مدال و سکه.\n\n'
+        '## احراز هویت\n'
+        'اکثر endpointها نیاز به JWT دارند:\n'
+        '`Authorization: Bearer <access_token>`\n\n'
+        '## نقش‌ها\n'
+        '- Superuser: همه مجوزها\n'
+        '- Admin: کاربران، نقش‌ها، محتوا\n'
+        '- Curator: دسته‌بندی و مدال\n'
+        '- Viewer: فقط مشاهده\n\n'
+        '## کدهای وضعیت\n'
+        '200 موفق | 201 ایجاد | 400 نامعتبر | 401 بدون احراز هویت | 403 بدون مجوز | 404 یافت نشد\n\n'
+        '## صفحه‌بندی\n'
+        'count, next, previous, results — اندازه صفحه پیش‌فرض ۲۰.'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SECURITY': [{'BearerAuth': []}],
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': 'JWT access token از endpoint ورود',
+            },
+        },
+    },
 }
