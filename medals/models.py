@@ -111,8 +111,8 @@ class Medal(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        verbose_name = 'Medal'
-        verbose_name_plural = 'Medals'
+        verbose_name = 'مدال'
+        verbose_name_plural = 'مدال‌ها'
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['country', 'year']),
