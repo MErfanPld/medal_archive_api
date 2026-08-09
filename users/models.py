@@ -14,8 +14,8 @@ class Permission(models.Model):
     Application-level permission, independent of django.contrib.auth.Permission.
     Example: medals.create, users.view
     """
-    codename = models.SlugField(max_length=100, unique=True, verbose_name='کدنام')
-    name = models.CharField(max_length=150, verbose_name='نام')
+    codename = models.SlugField(max_length=100, unique=True, verbose_name='کد دسترسی')
+    name = models.CharField(max_length=150, verbose_name='نام دسترسی')
     description = models.TextField(blank=True, verbose_name='توضیحات')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
 
@@ -31,15 +31,15 @@ class Permission(models.Model):
 class Role(models.Model):
     """System roles (ACL) - e.g. admin, curator, viewer"""
     name = models.CharField(max_length=50, unique=True, verbose_name='نام نقش')
-    codename = models.SlugField(max_length=50, unique=True, verbose_name='کدنام')
+    codename = models.SlugField(max_length=50, unique=True, verbose_name='کد نقش')
     description = models.TextField(blank=True, verbose_name='توضیحات')
     is_active = models.BooleanField(default=True, verbose_name='فعال')
     permissions = models.ManyToManyField(
         Permission, through='RolePermission', related_name='roles', blank=True,
-        verbose_name='مجوزها'
+        verbose_name='دسترسی‌ها'
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ به‌روزرسانی')
 
     class Meta:
         ordering = ['name']
@@ -57,7 +57,7 @@ class RolePermission(models.Model):
     )
     permission = models.ForeignKey(
         Permission, on_delete=models.CASCADE, related_name='permission_role_set',
-        verbose_name='مجوز'
+        verbose_name='دسترسی'
     )
     granted_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ اعطا')
 
@@ -75,6 +75,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     Custom user. No public registration path;
     users are created only by admin via InviteLink.
     """
+    # Explicit Persian labels for fields inherited from AbstractBaseUser / PermissionsMixin
+    password = models.CharField(max_length=128, verbose_name='رمز عبور')
+    last_login = models.DateTimeField(blank=True, null=True, verbose_name='آخرین ورود')
+    is_superuser = models.BooleanField(
+        default=False,
+        verbose_name='ابرکاربر',
+        help_text='تعیین می‌کند که این کاربر همه دسترسی‌ها را بدون بررسی جداگانه دارد.',
+    )
+
     username = models.CharField(
         max_length=150, unique=True, db_index=True, verbose_name='نام کاربری'
     )
@@ -91,21 +100,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False, verbose_name='فعال'
     )
     is_staff = models.BooleanField(
-        default=False, verbose_name='دسترسی پنل جنگو'
+        default=False, verbose_name='کارمند'
     )
 
     must_change_password = models.BooleanField(
-        default=False, verbose_name='باید رمز عبور را تغییر دهد'
+        default=False, verbose_name='نیاز به تغییر رمز عبور'
     )
 
     failed_login_attempts = models.PositiveIntegerField(
         default=0, verbose_name='تعداد تلاش‌های ناموفق ورود'
     )
     locked_until = models.DateTimeField(
-        null=True, blank=True, verbose_name='قفل تا تاریخ'
+        null=True, blank=True, verbose_name='زمان پایان قفل حساب'
     )
     last_login_ip = models.GenericIPAddressField(
-        null=True, blank=True, verbose_name='آی‌پی آخرین ورود'
+        null=True, blank=True, verbose_name='آخرین IP ورود'
     )
 
     created_by = models.ForeignKey(
@@ -114,7 +123,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ عضویت')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ به‌روزرسانی')
 
     objects = UserManager()
 
@@ -201,7 +210,7 @@ class UserRole(models.Model):
     )
     assigned_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='assigned_roles',
-        verbose_name='تخصیص‌دهنده'
+        verbose_name='اختصاص داده شده توسط'
     )
     assigned_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ تخصیص')
 
@@ -236,15 +245,15 @@ class InviteLink(models.Model):
 
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='created_invites',
-        verbose_name='ساخته‌شده توسط'
+        verbose_name='ایجادکننده'
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     expires_at = models.DateTimeField(verbose_name='تاریخ انقضا')
 
     is_used = models.BooleanField(default=False, verbose_name='مصرف‌شده')
-    used_at = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ مصرف')
-    used_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name='آی‌پی مصرف‌کننده')
-    created_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name='آی‌پی سازنده')
+    used_at = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ استفاده')
+    used_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP استفاده')
+    created_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP ایجاد')
 
     class Meta:
         verbose_name = 'لینک دعوت'
