@@ -288,3 +288,30 @@ class MedalSerializer(serializers.ModelSerializer):
                 {'last_valuation_date': 'Last valuation date cannot be in the future.'}
             )
         return attrs
+
+
+class MuseumMedalSerializer(serializers.ModelSerializer):
+    """Rich read-only payload for museum / public detail experience."""
+
+    category_detail = CategorySerializer(source='category', read_only=True)
+    images = MedalImageSerializer(many=True, read_only=True)
+    files = MedalFileSerializer(many=True, read_only=True)
+    purchase_records = MedalPurchaseRecordSerializer(many=True, read_only=True)
+    valuation_records = MedalValuationRecordSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Medal
+        fields = [
+            'id', 'name', 'country', 'year', 'occasion', 'historical_period',
+            'maker', 'mint_or_manufacturer', 'category', 'category_detail',
+            'material', 'weight', 'diameter', 'thickness', 'shape', 'color', 'edge',
+            'quality', 'preservation_condition', 'authenticity', 'catalog_number',
+            'current_value', 'last_valuation_date',
+            'purchase_date', 'purchase_location', 'seller',
+            'purchase_price', 'purchase_currency',
+            'cabinet_number', 'drawer_number', 'box_number',
+            'notes',
+            'images', 'files', 'purchase_records', 'valuation_records',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = fields

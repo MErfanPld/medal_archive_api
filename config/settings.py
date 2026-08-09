@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'users',
     'categories',
     'medals',
+    'reports',
 ]
 
 MIDDLEWARE = [
