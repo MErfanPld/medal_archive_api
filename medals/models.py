@@ -151,7 +151,7 @@ class Medal(models.Model):
     notes = models.TextField(blank=True, default='', verbose_name='یادداشت')
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ به‌روزرسانی')
 
     class Meta:
         ordering = ['-created_at']

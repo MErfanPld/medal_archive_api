@@ -7,12 +7,12 @@ class Category(models.Model):
         max_length=150, unique=True, db_index=True, verbose_name='نام دسته‌بندی'
     )
     slug = models.SlugField(
-        max_length=160, unique=True, db_index=True, blank=True, verbose_name='شناسه متنی'
+        max_length=160, unique=True, db_index=True, blank=True, verbose_name='نامک'
     )
     description = models.TextField(blank=True, default='', verbose_name='توضیحات')
     is_active = models.BooleanField(default=True, db_index=True, verbose_name='فعال')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ آخرین بروزرسانی')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ به‌روزرسانی')
 
     class Meta:
         ordering = ['name']
