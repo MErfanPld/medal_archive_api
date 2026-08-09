@@ -138,6 +138,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+MEDAL_IMAGE_MAX_BYTES = int(os.environ.get('MEDAL_IMAGE_MAX_BYTES', 10 * 1024 * 1024))
+MEDAL_FILE_MAX_BYTES = int(os.environ.get('MEDAL_FILE_MAX_BYTES', 20 * 1024 * 1024))
+MEDAL_IMAGE_MAX_COUNT = 10
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/
