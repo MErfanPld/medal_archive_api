@@ -37,3 +37,10 @@ class ActiveUserJWTAuthentication(JWTAuthentication):
             )
 
         return user
+
+
+# Register OpenAPI auth extension for drf-spectacular
+try:
+    from . import schema as _schema  # noqa: F401
+except ImportError:
+    pass
