@@ -138,6 +138,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+MEDAL_IMAGE_MAX_BYTES = int(os.environ.get('MEDAL_IMAGE_MAX_BYTES', 10 * 1024 * 1024))
+MEDAL_FILE_MAX_BYTES = int(os.environ.get('MEDAL_FILE_MAX_BYTES', 20 * 1024 * 1024))
+MEDAL_IMAGE_MAX_COUNT = 10
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/
@@ -217,17 +224,30 @@ SECURE_PROXY_SSL_HEADER = (
     'HTTP_X_FORWARDED_PROTO',
     'https',
 )
-
 AUTH_USER_MODEL = 'users.User'
 
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Medal Archive API',
-    'DESCRIPTION': 'API for Medal & Coin Collection Management',
+    'DESCRIPTION': (
+        'API مدیریت آرشیو مدال و سکه.\n\n'
+        '## احراز هویت\n'
+        'اکثر endpointها نیاز به JWT دارند:\n'
+        '`Authorization: Bearer <access_token>`\n\n'
+        '## نقش‌ها\n'
+        '- Superuser: همه مجوزها\n'
+        '- Admin: کاربران، نقش‌ها، محتوا\n'
+        '- Curator: دسته‌بندی و مدال\n'
+        '- Viewer: فقط مشاهده\n\n'
+        '## کدهای وضعیت\n'
+        '200 موفق | 201 ایجاد | 400 نامعتبر | 401 بدون احراز هویت | 403 بدون مجوز | 404 یافت نشد\n\n'
+        '## صفحه‌بندی\n'
+        'count, next, previous, results — اندازه صفحه پیش‌فرض ۲۰.'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
-    # OpenAPI security scheme for Swagger UI Authorize button.
-    # Describes existing JWT Bearer auth; does not change runtime authentication.
+    'COMPONENT_SPLIT_REQUEST': True,
+
     'APPEND_COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {
@@ -238,8 +258,9 @@ SPECTACULAR_SETTINGS = {
                     'JWT access token. Obtain via POST /api/users/login/, '
                     'then paste: Bearer <access_token>'
                 ),
-            }
-        }
+            },
+        },
     },
+
     'SECURITY': [{'BearerAuth': []}],
 }
