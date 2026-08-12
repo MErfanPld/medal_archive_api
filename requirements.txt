@@ -19,4 +19,8 @@ referencing==0.37.0
 rpds-py==2026.6.3
 sqlparse==0.5.5
 uritemplate==4.2.0
+<<<<<<< HEAD
+=======
+Pillow>=10.0.0
+>>>>>>> a6d66be (fix: resolve requirements merge conflict)
 reportlab>=4.0
