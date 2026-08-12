@@ -18,36 +18,36 @@ from __future__ import annotations
 PERMISSIONS: list[tuple[str, str, str]] = [
     # (codename, display name, description)
     # Users
-    ("users.view", "View users", "List and retrieve users"),
-    ("users.create", "Create users", "Invite / create users"),
-    ("users.update", "Update users", "Activate, deactivate, or update users"),
-    ("users.delete", "Delete users", "Delete users"),
+    ("users.view", "مشاهده کاربران", "لیست و مشاهده کاربران"),
+    ("users.create", "ایجاد کاربر", "دعوت و ایجاد کاربر جدید"),
+    ("users.update", "ویرایش کاربر", "فعال/غیرفعال کردن و بروزرسانی کاربر"),
+    ("users.delete", "حذف کاربر", "حذف کاربر"),
     # Roles
-    ("roles.view", "View roles", "List and retrieve roles"),
-    ("roles.create", "Create roles", "Create roles"),
-    ("roles.update", "Update roles", "Update roles and their permissions"),
-    ("roles.delete", "Delete roles", "Delete roles"),
-    ("roles.assign", "Assign roles", "Assign or replace roles on users"),
+    ("roles.view", "مشاهده نقش‌ها", "لیست و مشاهده نقش‌ها"),
+    ("roles.create", "ایجاد نقش", "ایجاد نقش جدید"),
+    ("roles.update", "ویرایش نقش", "ویرایش نقش و دسترسی‌های آن"),
+    ("roles.delete", "حذف نقش", "حذف نقش"),
+    ("roles.assign", "اختصاص نقش", "اختصاص یا تغییر نقش کاربر"),
     # Permissions
-    ("permissions.view", "View permissions", "List application permissions"),
-    # Categories (future modules — seeded so roles can be granted now)
-    ("categories.view", "View categories", "List and retrieve categories"),
-    ("categories.create", "Create categories", "Create categories"),
-    ("categories.update", "Update categories", "Update categories"),
-    ("categories.delete", "Delete categories", "Delete categories"),
+    ("permissions.view", "مشاهده دسترسی‌ها", "لیست دسترسی‌های برنامه"),
+    # Categories
+    ("categories.view", "مشاهده دسته‌بندی‌ها", "لیست و مشاهده دسته‌بندی‌ها"),
+    ("categories.create", "ایجاد دسته‌بندی", "ایجاد دسته‌بندی جدید"),
+    ("categories.update", "ویرایش دسته‌بندی", "ویرایش و بروزرسانی دسته‌بندی"),
+    ("categories.delete", "حذف دسته‌بندی", "حذف دسته‌بندی"),
     # Medals
-    ("medals.view", "View medals", "List and retrieve medals"),
-    ("medals.create", "Create medals", "Create medals"),
-    ("medals.update", "Update medals", "Update medals"),
-    ("medals.delete", "Delete medals", "Delete medals"),
+    ("medals.view", "مشاهده مدال‌ها", "لیست و مشاهده مدال‌ها"),
+    ("medals.create", "ایجاد مدال", "ایجاد مدال جدید"),
+    ("medals.update", "ویرایش مدال", "ویرایش و بروزرسانی مدال"),
+    ("medals.delete", "حذف مدال", "حذف مدال"),
     # Products
-    ("products.view", "View products", "List and retrieve products"),
-    ("products.create", "Create products", "Create products"),
-    ("products.update", "Update products", "Update products"),
-    ("products.delete", "Delete products", "Delete products"),
+    ("products.view", "مشاهده محصولات", "لیست و مشاهده محصولات"),
+    ("products.create", "ایجاد محصول", "ایجاد محصول جدید"),
+    ("products.update", "ویرایش محصول", "ویرایش محصول"),
+    ("products.delete", "حذف محصول", "حذف محصول"),
     # Reports / Search
-    ("reports.view", "View reports", "View collection and system reports"),
-    ("search.use", "Use search", "Use search and advanced filtering"),
+    ("reports.view", "مشاهده گزارش‌ها", "مشاهده گزارش‌های مجموعه و سیستم"),
+    ("search.use", "استفاده از جستجو", "استفاده از جستجوی پیشرفته و فیلترینگ"),
 ]
 
 PERMISSION_CODENAMES: frozenset[str] = frozenset(c for c, _, _ in PERMISSIONS)
@@ -62,13 +62,13 @@ ROLE_VIEWER = "viewer"
 
 DEFAULT_ROLES: dict[str, dict] = {
     ROLE_ADMIN: {
-        "name": "Admin",
-        "description": "Full management access to users, roles, and collection content",
+        "name": "مدیر",
+        "description": "دسترسی کامل به کاربران، نقش‌ها و محتوای مجموعه",
         "permissions": sorted(PERMISSION_CODENAMES),
     },
     ROLE_CURATOR: {
-        "name": "Curator",
-        "description": "Manage collection content (categories, medals, products)",
+        "name": "نگهبان",
+        "description": "مدیریت محتوای مجموعه (دسته‌بندی‌ها، مدال‌ها، محصولات)",
         "permissions": [
             "categories.view",
             "categories.create",
@@ -86,8 +86,8 @@ DEFAULT_ROLES: dict[str, dict] = {
         ],
     },
     ROLE_VIEWER: {
-        "name": "Viewer",
-        "description": "Read-only access to collection content and reports",
+        "name": "نمایش‌دهنده",
+        "description": "دسترسی فقط خواندنی به محتوای مجموعه و گزارش‌ها",
         "permissions": [
             "categories.view",
             "medals.view",
