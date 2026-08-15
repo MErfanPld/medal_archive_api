@@ -270,6 +270,23 @@ class InviteLinkCreateResponseSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField()
     warning = serializers.CharField()
 
+    def validate_username(self, value):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('نام کاربری الزامی است.')
+        existing = User.objects.filter(username__iexact=value).first()
+        if existing is None:
+            return value
+        # کاربر فعال: لینک دعوت جدید مجاز نیست
+        if existing.is_active:
+            raise serializers.ValidationError(
+                'این نام کاربری مربوط به یک کاربر فعال است. برای دعوت مجدد ابتدا حساب را غیرفعال کنید.'
+            )
+        # کاربر غیرفعال: اجازه صدور/تمدید لینک با همان username
+        self.context['existing_invite_user'] = existing
+        return existing.username  # canonical case from DB
+    
+    
 
 class RoleCodeNameSerializer(serializers.Serializer):
     """نقش خلاصه برای پاسخ ساخت کاربر: code داخلی + name فارسی."""

@@ -86,34 +86,75 @@ class InviteLinkCreateAPIView(APIView):
     required_permission = 'users.create'
     throttle_classes = [InviteCreateThrottle]
 
-    @extend_schema(tags=['Invites'], summary='ساخت لینک دعوت یک‌بار مصرف', request=InviteLinkCreateSerializer, responses={201: InviteLinkCreateResponseSerializer})
+    @extend_schema(
+        tags=['Invites'],
+        summary='ساخت یا تمدید لینک دعوت یک‌بار مصرف',
+        description=(
+            'اگر username جدید باشد کاربر غیرفعال ساخته می‌شود. '
+            'اگر username مربوط به کاربر غیرفعال موجود باشد، همان کاربر حفظ می‌شود و لینک جدید صادر می‌گردد '
+            '(نیازی به نام کاربری جدید نیست).'
+        ),
+        request=InviteLinkCreateSerializer,
+        responses={201: InviteLinkCreateResponseSerializer},
+    )
     @transaction.atomic
     def post(self, request):
         serializer = InviteLinkCreateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         email = (data.get('email') or '').strip() or None
-        user = User.objects.create_user(
-            username=data['username'], password=data['password'], email=email,
-            is_active=False, created_by=request.user,
-        )
-        for role in data.get('role_ids', []):
-            UserRole.objects.create(user=user, role=role, assigned_by=request.user)
+        existing = serializer.context.get('existing_invite_user')
+
+        if existing is not None:
+            user = existing
+            # به‌روزرسانی اختیاری
+            if email is not None:
+                user.email = email
+            if data.get('password'):
+                user.set_password(data['password'])
+            user.is_active = False
+            user.save()
+            # نقش‌ها در صورت ارسال جایگزین شوند
+            if 'role_ids' in data:
+                UserRole.objects.filter(user=user).delete()
+                for role in data.get('role_ids') or []:
+                    UserRole.objects.create(user=user, role=role, assigned_by=request.user)
+            # لینک قبلی (OneToOne) باطل و حذف شود تا لینک جدید ساخته شود
+            InviteLink.objects.filter(user=user).delete()
+            regenerated = True
+        else:
+            user = User.objects.create_user(
+                username=data['username'],
+                password=data['password'],
+                email=email,
+                is_active=False,
+                created_by=request.user,
+            )
+            for role in data.get('role_ids', []) or []:
+                UserRole.objects.create(user=user, role=role, assigned_by=request.user)
+            regenerated = False
+
         raw_token = generate_raw_token()
         expires_at = timezone.now() + timezone.timedelta(hours=data['expires_in_hours'])
         invite = InviteLink.objects.create(
-            user=user, token_hash=hash_token(raw_token), created_by=request.user,
-            expires_at=expires_at, created_ip=get_client_ip(request),
+            user=user,
+            token_hash=hash_token(raw_token),
+            created_by=request.user,
+            expires_at=expires_at,
+            created_ip=get_client_ip(request),
         )
         frontend_base = getattr(settings, 'INVITE_LINK_FRONTEND_URL', '')
         invite_url = f'{frontend_base}?token={raw_token}' if frontend_base else raw_token
         return Response({
-            'user': UserSerializer(user).data, 'invite_url': invite_url, 'token': raw_token,
+            'user': UserSerializer(user).data,
+            'invite_url': invite_url,
+            'token': raw_token,
             'expires_at': invite.expires_at,
+            'regenerated': regenerated,
             'warning': 'این توکن فقط همین یک‌بار نمایش داده می‌شود. جای دیگری ذخیره نشده است.',
         }, status=status.HTTP_201_CREATED)
-
-
+        
+        
 class InviteLinkConsumeAPIView(TokenResponseMixin, APIView):
     permission_classes = [drf_permissions.AllowAny]
     throttle_classes = [InviteConsumeThrottle]
@@ -202,20 +243,51 @@ class UserListAPIView(generics.ListCreateAPIView):
 class UserDetailAPIView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [drf_permissions.IsAuthenticated, HasAppPermission]
-    permission_map = {'retrieve': 'users.view', 'partial_update': 'users.update', 'update': 'users.update'}
+    permission_map = {
+        'retrieve': 'users.view',
+        'partial_update': 'users.update',
+        'update': 'users.update',
+        'destroy': 'users.delete',
+    }
     queryset = User.objects.all().prefetch_related('roles')
 
-    @extend_schema(tags=['Users'])
+    @extend_schema(tags=['Users'], summary='جزئیات کاربر')
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @extend_schema(tags=['Users'], summary='فعال/غیرفعال کردن کاربر', request=UserActivateSerializer, responses={200: UserSerializer})
+    @extend_schema(
+        tags=['Users'],
+        summary='فعال/غیرفعال کردن کاربر',
+        request=UserActivateSerializer,
+        responses={200: UserSerializer},
+    )
     def patch(self, request, *args, **kwargs):
         user = self.get_object()
         if 'is_active' in request.data:
             user.is_active = bool(request.data['is_active'])
             user.save(update_fields=['is_active'])
         return Response(UserSerializer(user).data)
+
+    @extend_schema(
+        tags=['Users'],
+        summary='حذف کاربر',
+        description='حذف دائمی کاربر. نیاز به users.delete. حذف خود کاربر یا سوپریوزر مجاز نیست.',
+        responses={204: None, 403: MessageResponseSerializer, 404: MessageResponseSerializer},
+    )
+    def delete(self, request, *args, **kwargs):
+        user = self.get_object()
+        if user.pk == request.user.pk:
+            return Response(
+                {'detail': 'نمی‌توانید حساب خودتان را حذف کنید.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if user.is_superuser:
+            return Response(
+                {'detail': 'حذف سوپریوزر مجاز نیست.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserRoleAssignAPIView(APIView):
