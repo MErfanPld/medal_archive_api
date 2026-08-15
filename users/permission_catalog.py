@@ -7,6 +7,9 @@ Adding a future module only requires:
   1. Append codenames here
   2. Seed them (data migration or management command)
   3. Declare permission_map / required_permission on views
+
+Display names (name / description) are Persian for API and UI.
+Codenames remain English and are the stable keys for ACL logic.
 """
 
 from __future__ import annotations
@@ -20,14 +23,23 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     # Users
     ("users.view", "مشاهده کاربران", "لیست و مشاهده کاربران"),
     ("users.create", "ایجاد کاربر", "دعوت و ایجاد کاربر جدید"),
+<<<<<<< HEAD
     ("users.update", "ویرایش کاربر", "فعال/غیرفعال کردن و بروزرسانی کاربر"),
     ("users.delete", "حذف کاربر", "حذف کاربر"),
+=======
+    ("users.update", "ویرایش کاربر", "فعال، غیرفعال یا بروزرسانی کاربران"),
+    ("users.delete", "حذف کاربر", "حذف کاربران"),
+>>>>>>> feature/dashboard-reports
     # Roles
     ("roles.view", "مشاهده نقش‌ها", "لیست و مشاهده نقش‌ها"),
     ("roles.create", "ایجاد نقش", "ایجاد نقش جدید"),
     ("roles.update", "ویرایش نقش", "ویرایش نقش و دسترسی‌های آن"),
     ("roles.delete", "حذف نقش", "حذف نقش"),
+<<<<<<< HEAD
     ("roles.assign", "اختصاص نقش", "اختصاص یا تغییر نقش کاربر"),
+=======
+    ("roles.assign", "اختصاص نقش", "اختصاص یا جایگزینی نقش‌های کاربر"),
+>>>>>>> feature/dashboard-reports
     # Permissions
     ("permissions.view", "مشاهده دسترسی‌ها", "لیست دسترسی‌های برنامه"),
     # Categories
@@ -37,7 +49,11 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     ("categories.delete", "حذف دسته‌بندی", "حذف دسته‌بندی"),
     # Medals
     ("medals.view", "مشاهده مدال‌ها", "لیست و مشاهده مدال‌ها"),
+<<<<<<< HEAD
     ("medals.create", "ایجاد مدال", "ایجاد مدال جدید"),
+=======
+    ("medals.create", "ثبت مدال", "ثبت مدال جدید"),
+>>>>>>> feature/dashboard-reports
     ("medals.update", "ویرایش مدال", "ویرایش و بروزرسانی مدال"),
     ("medals.delete", "حذف مدال", "حذف مدال"),
     # Products
@@ -67,7 +83,11 @@ DEFAULT_ROLES: dict[str, dict] = {
         "permissions": sorted(PERMISSION_CODENAMES),
     },
     ROLE_CURATOR: {
+<<<<<<< HEAD
         "name": "نگهبان",
+=======
+        "name": "متصدی مجموعه",
+>>>>>>> feature/dashboard-reports
         "description": "مدیریت محتوای مجموعه (دسته‌بندی‌ها، مدال‌ها، محصولات)",
         "permissions": [
             "categories.view",
@@ -86,8 +106,13 @@ DEFAULT_ROLES: dict[str, dict] = {
         ],
     },
     ROLE_VIEWER: {
+<<<<<<< HEAD
         "name": "نمایش‌دهنده",
         "description": "دسترسی فقط خواندنی به محتوای مجموعه و گزارش‌ها",
+=======
+        "name": "مشاهده‌گر",
+        "description": "دسترسی فقط‌خواندنی به محتوای مجموعه و گزارش‌ها",
+>>>>>>> feature/dashboard-reports
         "permissions": [
             "categories.view",
             "medals.view",
