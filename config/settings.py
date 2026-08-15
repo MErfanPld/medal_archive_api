@@ -195,8 +195,7 @@ SIMPLE_JWT = {
 # Frontend base URL used when building invite links:
 # INVITE_LINK_FRONTEND_URL + "?token=<raw_token>"
 INVITE_LINK_FRONTEND_URL = os.environ.get(
-    'INVITE_LINK_FRONTEND_URL',
-    'https://your-frontend.com/activate',
+    'http://localhost:3000'
 )
 
 # F9: only honor X-Forwarded-For when the deployment is behind a trusted proxy.

@@ -269,3 +269,139 @@ class InviteLinkCreateResponseSerializer(serializers.Serializer):
     token = serializers.CharField()
     expires_at = serializers.DateTimeField()
     warning = serializers.CharField()
+
+
+class RoleCodeNameSerializer(serializers.Serializer):
+    """نقش خلاصه برای پاسخ ساخت کاربر: code داخلی + name فارسی."""
+    code = serializers.CharField(source='codename')
+    name = serializers.CharField()
+
+
+class UserCreateResponseSerializer(serializers.ModelSerializer):
+    """پاسخ امن ساخت کاربر — بدون password و فیلدهای حساس."""
+    role = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(source='date_joined', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_active', 'role', 'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+    def get_role(self, obj):
+        role = obj.roles.filter(is_active=True).order_by('codename').first()
+        if role is None:
+            return None
+        return RoleCodeNameSerializer(role).data
+
+
+class UserCreateSerializer(serializers.Serializer):
+    """ساخت کاربر جدید توسط مدیر دارای users.create."""
+    username = serializers.CharField(max_length=150, help_text='نام کاربری (یکتا)')
+    email = serializers.EmailField(
+        required=False, allow_blank=True, allow_null=True, help_text='ایمیل کاربر',
+    )
+    first_name = serializers.CharField(
+        max_length=100, required=False, allow_blank=True, help_text='نام',
+    )
+    last_name = serializers.CharField(
+        max_length=100, required=False, allow_blank=True, help_text='نام خانوادگی',
+    )
+    password = serializers.CharField(
+        write_only=True,
+        min_length=10,
+        max_length=_PASSWORD_MAX_LENGTH,
+        help_text='رمز عبور',
+        style={'input_type': 'password'},
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        min_length=10,
+        max_length=_PASSWORD_MAX_LENGTH,
+        help_text='تکرار رمز عبور',
+        style={'input_type': 'password'},
+    )
+    role = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text='کد نقش (admin / curator / viewer) — اختیاری',
+    )
+    is_active = serializers.BooleanField(
+        required=False, default=True, help_text='فعال بودن کاربر',
+    )
+
+    def validate_username(self, value):
+        value = (value or '').strip()
+        if not value:
+            raise serializers.ValidationError('نام کاربری الزامی است.')
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError('این نام کاربری قبلاً ثبت شده است.')
+        return value
+
+    def validate_email(self, value):
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            return None
+        qs = User.objects.filter(email__iexact=value).exclude(email='').exclude(email__isnull=True)
+        if qs.exists():
+            raise serializers.ValidationError('این ایمیل قبلاً ثبت شده است.')
+        return value
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate_role(self, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        value = value.strip().lower()
+        try:
+            role = Role.objects.get(codename=value, is_active=True)
+        except Role.DoesNotExist:
+            raise serializers.ValidationError('نقش انتخاب‌شده معتبر نیست.')
+        return role
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        confirm = attrs.get('password_confirm')
+        if password != confirm:
+            raise serializers.ValidationError({
+                'password_confirm': ['تکرار رمز عبور با رمز عبور یکسان نیست.'],
+            })
+        role = attrs.get('role')
+        request = self.context.get('request')
+        if (
+            role is not None
+            and role.codename == SYSTEM_ADMIN_ROLE_CODENAME
+            and request is not None
+            and not request.user.is_superuser
+        ):
+            raise serializers.ValidationError({
+                'role': ['فقط سوپریوزر می‌تواند نقش admin را اعطا کند.'],
+            })
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context['request']
+        role = validated_data.pop('role', None)
+        validated_data.pop('password_confirm', None)
+        password = validated_data.pop('password')
+        is_active = validated_data.pop('is_active', True)
+        email = validated_data.get('email') or None
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            password=password,
+            email=email,
+            first_name=validated_data.get('first_name') or '',
+            last_name=validated_data.get('last_name') or '',
+            is_active=is_active,
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+        if role is not None:
+            UserRole.objects.create(user=user, role=role, assigned_by=request.user)
+        return user
