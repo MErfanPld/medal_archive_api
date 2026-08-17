@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'categories',
     'medals',
     'reports',
+    'coins',
 ]
 
 MIDDLEWARE = [
