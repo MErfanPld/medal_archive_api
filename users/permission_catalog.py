@@ -43,7 +43,12 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     ("medals.create", "ثبت مدال", "ثبت مدال جدید"),
     ("medals.update", "ویرایش مدال", "ویرایش و بروزرسانی مدال"),
     ("medals.delete", "حذف مدال", "حذف مدال"),
-    # Products
+    # Coins / currency (سکه و پول)
+    ("coins.view", "مشاهده سکه و پول", "لیست و مشاهده سکه‌ها، اسکناس‌ها و اقلام پولی"),
+    ("coins.create", "ثبت سکه و پول", "ایجاد سکه، اسکناس یا قلم پولی جدید"),
+    ("coins.update", "ویرایش سکه و پول", "ویرایش اقلام سکه و پول"),
+    ("coins.delete", "حذف سکه و پول", "حذف اقلام سکه و پول"),
+    # Products (legacy placeholder — kept for compatibility)
     ("products.view", "مشاهده محصولات", "لیست و مشاهده محصولات"),
     ("products.create", "ایجاد محصول", "ایجاد محصول جدید"),
     ("products.update", "ویرایش محصول", "ویرایش محصول"),
@@ -71,7 +76,7 @@ DEFAULT_ROLES: dict[str, dict] = {
     },
     ROLE_CURATOR: {
         "name": "متصدی مجموعه",
-        "description": "مدیریت محتوای مجموعه (دسته‌بندی‌ها، مدال‌ها، محصولات)",
+        "description": "مدیریت محتوای مجموعه (دسته‌بندی‌ها، مدال‌ها، سکه و پول)",
         "permissions": [
             "categories.view",
             "categories.create",
@@ -80,6 +85,10 @@ DEFAULT_ROLES: dict[str, dict] = {
             "medals.create",
             "medals.update",
             "medals.delete",
+            "coins.view",
+            "coins.create",
+            "coins.update",
+            "coins.delete",
             "products.view",
             "products.create",
             "products.update",
@@ -94,6 +103,7 @@ DEFAULT_ROLES: dict[str, dict] = {
         "permissions": [
             "categories.view",
             "medals.view",
+            "coins.view",
             "products.view",
             "reports.view",
             "search.use",
