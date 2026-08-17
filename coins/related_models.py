@@ -1,0 +1,47 @@
+from django.conf import settings
+from django.db import models
+
+
+def coin_image_upload_to(instance, filename):
+    return f'coins/{instance.coin_id}/images/{filename}'
+
+
+class CoinImageType(models.TextChoices):
+    FRONT = 'front', 'رو'
+    BACK = 'back', 'پشت'
+    EDGE = 'edge', 'لبه'
+    DETAIL = 'detail', 'جزئیات'
+    CERTIFICATE = 'certificate', 'گواهی'
+    OTHER = 'other', 'سایر'
+
+
+class CoinImage(models.Model):
+    coin = models.ForeignKey(
+        'coins.Coin', on_delete=models.CASCADE, related_name='images', verbose_name='سکه/پول'
+    )
+    image = models.ImageField(upload_to=coin_image_upload_to, verbose_name='تصویر')
+    image_type = models.CharField(
+        max_length=20, choices=CoinImageType.choices, default=CoinImageType.OTHER, verbose_name='نوع تصویر'
+    )
+    caption = models.CharField(max_length=255, blank=True, default='', verbose_name='عنوان')
+    ordering = models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')
+    is_primary = models.BooleanField(default=False, db_index=True, verbose_name='تصویر اصلی')
+    original_filename = models.CharField(max_length=255, blank=True, default='', verbose_name='نام فایل اصلی')
+    file_size = models.PositiveIntegerField(null=True, blank=True, verbose_name='حجم فایل')
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_coin_images',
+        verbose_name='آپلودکننده',
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ آپلود')
+
+    class Meta:
+        ordering = ['ordering', 'id']
+        verbose_name = 'تصویر سکه/پول'
+        verbose_name_plural = 'تصاویر سکه و پول'
+
+    def __str__(self):
+        return f'{self.coin_id}:{self.image_type}:{self.pk}'
