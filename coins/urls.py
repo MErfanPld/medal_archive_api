@@ -1,12 +1,8 @@
-from django.urls import include, path
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    CoinImageViewSet,
-    CoinViewSet,
-    CoinPurchaseRecordViewSet,
-    CoinValuationRecordViewSet,
-)
+from .purchase_views import CoinPurchaseRecordViewSet, CoinValuationRecordViewSet
+from .views import CoinImageViewSet, CoinViewSet
 
 app_name = 'coins'
 
