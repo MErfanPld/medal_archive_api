@@ -63,6 +63,13 @@ INSTALLED_APPS = [
     'medals',
     'reports',
     'coins',
+    'banknotes',
+    'seals',
+    'tasbih',
+    'rings',
+    'knives',
+    'antiques',
+    'stamps',
 ]
 
 MIDDLEWARE = [
@@ -147,6 +154,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MEDAL_IMAGE_MAX_BYTES = int(os.environ.get('MEDAL_IMAGE_MAX_BYTES', 10 * 1024 * 1024))
 MEDAL_FILE_MAX_BYTES = int(os.environ.get('MEDAL_FILE_MAX_BYTES', 20 * 1024 * 1024))
 MEDAL_IMAGE_MAX_COUNT = 10
+COLLECTION_IMAGE_MAX_BYTES = int(os.environ.get('COLLECTION_IMAGE_MAX_BYTES', 10 * 1024 * 1024))
+COLLECTION_IMAGE_MAX_COUNT = 10
 
 
 # Email
@@ -232,14 +241,14 @@ AUTH_USER_MODEL = 'users.User'
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Medal Archive API',
     'DESCRIPTION': (
-        'API مدیریت آرشیو مدال و سکه.\n\n'
+        'API مدیریت آرشیو مدال، سکه و اقلام مجموعه.\n\n'
         '## احراز هویت\n'
         'اکثر endpointها نیاز به JWT دارند:\n'
         '`Authorization: Bearer <access_token>`\n\n'
         '## نقش‌ها\n'
         '- Superuser: همه مجوزها\n'
         '- Admin: کاربران، نقش‌ها، محتوا\n'
-        '- Curator: دسته‌بندی و مدال\n'
+        '- Curator: دسته‌بندی و محتوا\n'
         '- Viewer: فقط مشاهده\n\n'
         '## کدهای وضعیت\n'
         '200 موفق | 201 ایجاد | 400 نامعتبر | 401 بدون احراز هویت | 403 بدون مجوز | 404 یافت نشد\n\n'
