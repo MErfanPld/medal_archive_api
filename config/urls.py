@@ -16,10 +16,16 @@ urlpatterns = [
     path('api/categories/', include('categories.urls')),
     path('api/medals/', include('medals.urls')),
     path('api/coins/', include('coins.urls')),
+    path('api/banknotes/', include('banknotes.urls')),
+    path('api/seals/', include('seals.urls')),
+    path('api/tasbih/', include('tasbih.urls')),
+    path('api/rings/', include('rings.urls')),
+    path('api/knives/', include('knives.urls')),
+    path('api/antiques/', include('antiques.urls')),
+    path('api/stamps/', include('stamps.urls')),
     path('api/reports/', include('reports.urls')),
 ]
 
-# F21: expose schema/Swagger only in DEBUG or when explicitly enabled.
 if settings.DEBUG or getattr(settings, 'SPECTACULAR_SERVE_PUBLIC', False):
     urlpatterns += [
         path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
