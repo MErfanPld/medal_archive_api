@@ -16,13 +16,9 @@ urlpatterns = [
     path('api/categories/', include('categories.urls')),
     path('api/medals/', include('medals.urls')),
     path('api/coins/', include('coins.urls')),
-    path('api/banknotes/', include('banknotes.urls')),
-    path('api/seals/', include('seals.urls')),
-    path('api/tasbih/', include('tasbih.urls')),
-    path('api/rings/', include('rings.urls')),
-    path('api/knives/', include('knives.urls')),
-    path('api/antiques/', include('antiques.urls')),
-    path('api/stamps/', include('stamps.urls')),
+    # Collection modules (banknotes/seals/tasbih/rings/knives/antiques/stamps)
+    # enabled after full source is installed via:
+    #   python scripts/bootstrap_collection_modules.py
     path('api/reports/', include('reports.urls')),
 ]
 
