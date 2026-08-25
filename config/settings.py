@@ -16,20 +16,13 @@ from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
-
-# Prefer environment variables; fall back only for local development.
 _INSECURE_DEV_SECRET = 'django-insecure-dev-only-change-me-in-production'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _INSECURE_DEV_SECRET)
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in ('1', 'true', 'yes')
 
-# F16: production must never run with the known development SECRET_KEY.
 if not DEBUG and SECRET_KEY in ('', _INSECURE_DEV_SECRET):
     raise ImproperlyConfigured(
         'DJANGO_SECRET_KEY must be set to a strong unique value when DEBUG is False.'
@@ -40,9 +33,6 @@ ALLOWED_HOSTS = [
     for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
     if h.strip()
 ]
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -64,12 +54,13 @@ INSTALLED_APPS = [
     'reports',
     'coins',
     'banknotes',
-    'seals',
-    'tasbih',
-    'rings',
-    'knives',
-    'antiques',
-    'stamps',
+    # Enable after full module install:
+    # 'seals',
+    # 'tasbih',
+    # 'rings',
+    # 'knives',
+    # 'antiques',
+    # 'stamps',
 ]
 
 MIDDLEWARE = [
@@ -102,20 +93,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -127,27 +110,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Maximum password length accepted by API serializers (DoS / hasher safety).
 PASSWORD_MAX_LENGTH = 128
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/6.1/topics/i18n/
-
 LANGUAGE_CODE = 'fa-ir'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.1/howto/static-files/
-
 STATIC_URL = 'static/'
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -157,15 +127,10 @@ MEDAL_IMAGE_MAX_COUNT = 10
 COLLECTION_IMAGE_MAX_BYTES = int(os.environ.get('COLLECTION_IMAGE_MAX_BYTES', 10 * 1024 * 1024))
 COLLECTION_IMAGE_MAX_COUNT = 10
 
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/
-
 EMAIL_BACKEND = os.environ.get(
     'DJANGO_EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend',
 )
-
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -175,7 +140,6 @@ PASSWORD_HASHERS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        # F4: reject inactive / locked users at authentication time.
         'users.authentication.ActiveUserJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
@@ -202,41 +166,29 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Frontend base URL used when building invite links:
-# INVITE_LINK_FRONTEND_URL + "?token=<raw_token>"
 INVITE_LINK_FRONTEND_URL = os.environ.get(
-    'http://localhost:3000'
+    'INVITE_LINK_FRONTEND_URL',
+    'http://localhost:3000',
 )
 
-# F9: only honor X-Forwarded-For when the deployment is behind a trusted proxy.
 USE_X_FORWARDED_FOR = os.environ.get(
     'DJANGO_USE_X_FORWARDED_FOR', 'false'
 ).lower() in ('1', 'true', 'yes')
 
-# F21: expose OpenAPI/Swagger publicly only in DEBUG or when explicitly enabled.
 SPECTACULAR_SERVE_PUBLIC = os.environ.get(
     'DJANGO_SPECTACULAR_SERVE_PUBLIC', 'false'
 ).lower() in ('1', 'true', 'yes')
 
 SECURE_SSL_REDIRECT = False
-
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
-
-# HSTS off in development
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
-
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
-
-SECURE_PROXY_SSL_HEADER = (
-    'HTTP_X_FORWARDED_PROTO',
-    'https',
-)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 AUTH_USER_MODEL = 'users.User'
-
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Medal Archive API',
@@ -258,7 +210,6 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
-
     'APPEND_COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {
@@ -272,6 +223,5 @@ SPECTACULAR_SETTINGS = {
             },
         },
     },
-
     'SECURITY': [{'BearerAuth': []}],
 }
