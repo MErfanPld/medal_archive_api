@@ -2,7 +2,7 @@
 
 import django.core.validators
 import django.db.models.deletion
-import seals.related_models
+import knives.related_models
 from django.conf import settings
 from django.db import migrations, models
 
@@ -18,21 +18,21 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Seal',
+            name='Knife',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(db_index=True, max_length=255, verbose_name='نام')),
-                ('seal_type', models.CharField(blank=True, default='', max_length=80, verbose_name='نوع مهر (رسمی، شخصی، ...)')),
-                ('owner_name', models.CharField(blank=True, default='', max_length=200, verbose_name='نام صاحب مهر')),
-                ('title_or_rank', models.CharField(blank=True, default='', max_length=200, verbose_name='لقب / سمت')),
-                ('inscription', models.TextField(blank=True, default='', verbose_name='متن حکاکی')),
-                ('script', models.CharField(blank=True, default='', max_length=80, verbose_name='خط (نستعلیق، ثلث، ...)')),
-                ('material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس')),
-                ('shape', models.CharField(blank=True, default='', max_length=80, verbose_name='شکل')),
-                ('dimensions', models.CharField(blank=True, default='', max_length=100, verbose_name='ابعاد')),
-                ('weight', models.DecimalField(blank=True, decimal_places=4, max_digits=12, null=True, validators=[django.core.validators.MinValueValidator(0)], verbose_name='وزن (گرم)')),
+                ('knife_type', models.CharField(blank=True, default='', max_length=100, verbose_name='نوع (ضمیر، شکاری، تاشو، ...)')),
+                ('blade_material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس تیغه')),
+                ('blade_length', models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True, verbose_name='طول تیغه (سانتی\u200cمتر)')),
+                ('total_length', models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True, verbose_name='طول کل (سانتی\u200cمتر)')),
                 ('handle_material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس دسته')),
-                ('ink_color', models.CharField(blank=True, default='', max_length=50, verbose_name='رنگ مرکب متداول')),
+                ('handle_decoration', models.CharField(blank=True, default='', max_length=200, verbose_name='تزیین دسته')),
+                ('sheath_material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس غلاف')),
+                ('origin_region', models.CharField(blank=True, default='', max_length=150, verbose_name='منطقه ساخت (زنجان، ...)')),
+                ('maker', models.CharField(blank=True, default='', max_length=150, verbose_name='سازنده')),
+                ('weight', models.DecimalField(blank=True, decimal_places=4, max_digits=12, null=True, validators=[django.core.validators.MinValueValidator(0)], verbose_name='وزن (گرم)')),
+                ('has_sheath', models.BooleanField(default=False, verbose_name='دارای غلاف')),
                 ('country', models.CharField(blank=True, db_index=True, default='', max_length=100, verbose_name='کشور')),
                 ('year', models.PositiveSmallIntegerField(blank=True, db_index=True, null=True, verbose_name='سال')),
                 ('historical_period', models.CharField(blank=True, default='', max_length=150, verbose_name='دوره تاریخی')),
@@ -53,19 +53,19 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(db_index=True, default=True, verbose_name='فعال')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='تاریخ به\u200cروزرسانی')),
-                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='seals_items', to='categories.category', verbose_name='دسته\u200cبندی')),
+                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='knives_items', to='categories.category', verbose_name='دسته\u200cبندی')),
             ],
             options={
-                'verbose_name': 'مهر',
-                'verbose_name_plural': 'مهرها',
+                'verbose_name': 'چاقو',
+                'verbose_name_plural': 'چاقوها',
                 'ordering': ['-created_at'],
             },
         ),
         migrations.CreateModel(
-            name='SealImage',
+            name='KnifeImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to=seals.related_models.seals_image_upload_to, verbose_name='تصویر')),
+                ('image', models.ImageField(upload_to=knives.related_models.knives_image_upload_to, verbose_name='تصویر')),
                 ('image_type', models.CharField(choices=[('front', 'رو'), ('back', 'پشت'), ('detail', 'جزئیات'), ('certificate', 'گواهی'), ('other', 'سایر')], default='other', max_length=20, verbose_name='نوع تصویر')),
                 ('caption', models.CharField(blank=True, default='', max_length=255, verbose_name='عنوان')),
                 ('ordering', models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')),
@@ -73,17 +73,17 @@ class Migration(migrations.Migration):
                 ('original_filename', models.CharField(blank=True, default='', max_length=255, verbose_name='نام فایل اصلی')),
                 ('file_size', models.PositiveIntegerField(blank=True, null=True, verbose_name='حجم فایل')),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ آپلود')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='seals.seal', verbose_name='مهر')),
-                ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='uploaded_seals_images', to=settings.AUTH_USER_MODEL, verbose_name='آپلودکننده')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='knives.knife', verbose_name='چاقو')),
+                ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='uploaded_knives_images', to=settings.AUTH_USER_MODEL, verbose_name='آپلودکننده')),
             ],
             options={
-                'verbose_name': 'تصویر مهر',
-                'verbose_name_plural': 'تصاویر مهرها',
+                'verbose_name': 'تصویر چاقو',
+                'verbose_name_plural': 'تصاویر چاقوها',
                 'ordering': ['ordering', 'id'],
             },
         ),
         migrations.CreateModel(
-            name='SealPurchaseRecord',
+            name='KnifePurchaseRecord',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('purchase_date', models.DateField(blank=True, null=True, verbose_name='تاریخ خرید')),
@@ -93,17 +93,17 @@ class Migration(migrations.Migration):
                 ('currency', models.CharField(blank=True, default='', max_length=10, verbose_name='واحد پول')),
                 ('notes', models.TextField(blank=True, default='', verbose_name='یادداشت')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_seals_purchases', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='purchase_records', to='seals.seal', verbose_name='مهر')),
+                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_knives_purchases', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='purchase_records', to='knives.knife', verbose_name='چاقو')),
             ],
             options={
-                'verbose_name': 'سابقه خرید مهر',
-                'verbose_name_plural': 'سوابق خرید مهرها',
+                'verbose_name': 'سابقه خرید چاقو',
+                'verbose_name_plural': 'سوابق خرید چاقوها',
                 'ordering': ['-purchase_date', '-id'],
             },
         ),
         migrations.CreateModel(
-            name='SealValuationRecord',
+            name='KnifeValuationRecord',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('value', models.DecimalField(decimal_places=2, max_digits=14, validators=[django.core.validators.MinValueValidator(0)], verbose_name='ارزش')),
@@ -112,25 +112,25 @@ class Migration(migrations.Migration):
                 ('source', models.CharField(blank=True, default='', max_length=255, verbose_name='منبع')),
                 ('notes', models.TextField(blank=True, default='', verbose_name='یادداشت')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_seals_valuations', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='valuation_records', to='seals.seal', verbose_name='مهر')),
+                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_knives_valuations', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='valuation_records', to='knives.knife', verbose_name='چاقو')),
             ],
             options={
-                'verbose_name': 'سابقه ارزش\u200cگذاری مهر',
-                'verbose_name_plural': 'سوابق ارزش\u200cگذاری مهرها',
+                'verbose_name': 'سابقه ارزش\u200cگذاری چاقو',
+                'verbose_name_plural': 'سوابق ارزش\u200cگذاری چاقوها',
                 'ordering': ['-valuation_date', '-id'],
             },
         ),
         migrations.AddIndex(
-            model_name='seal',
-            index=models.Index(fields=['country', 'year'], name='seals_seal_country_7c1b84_idx'),
+            model_name='knife',
+            index=models.Index(fields=['country', 'year'], name='knives_knif_country_92b2d0_idx'),
         ),
         migrations.AddIndex(
-            model_name='seal',
-            index=models.Index(fields=['catalog_number'], name='seals_seal_catalog_37f18d_idx'),
+            model_name='knife',
+            index=models.Index(fields=['catalog_number'], name='knives_knif_catalog_cca14c_idx'),
         ),
         migrations.AddIndex(
-            model_name='seal',
-            index=models.Index(fields=['-created_at'], name='seals_seal_created_e8f6ca_idx'),
+            model_name='knife',
+            index=models.Index(fields=['-created_at'], name='knives_knif_created_020a7c_idx'),
         ),
     ]

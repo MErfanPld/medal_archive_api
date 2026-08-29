@@ -1,9 +1,9 @@
 import django_filters
 
-from .models import Seal, AuthenticityStatus, ConditionGrade
+from .models import Knife, AuthenticityStatus, ConditionGrade
 
 
-class SealFilter(django_filters.FilterSet):
+class KnifeFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
     country = django_filters.CharFilter(field_name='country', lookup_expr='icontains')
     catalog_number = django_filters.CharFilter(field_name='catalog_number', lookup_expr='icontains')
@@ -15,9 +15,9 @@ class SealFilter(django_filters.FilterSet):
     year_max = django_filters.NumberFilter(field_name='year', lookup_expr='lte')
     current_value_min = django_filters.NumberFilter(field_name='current_value', lookup_expr='gte')
     current_value_max = django_filters.NumberFilter(field_name='current_value', lookup_expr='lte')
-    material = django_filters.CharFilter(field_name='material', lookup_expr='icontains')
-    seal_type = django_filters.CharFilter(field_name='seal_type', lookup_expr='icontains')
+    knife_type = django_filters.CharFilter(field_name='knife_type', lookup_expr='icontains')
+    blade_material = django_filters.CharFilter(field_name='blade_material', lookup_expr='icontains')
 
     class Meta:
-        model = Seal
+        model = Knife
         fields = ['authenticity', 'condition', 'category', 'is_active', 'country', 'year']

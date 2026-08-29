@@ -3,11 +3,11 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 
-def seals_image_upload_to(instance, filename):
-    return f'seals/{instance.item_id}/images/{filename}'
+def rings_image_upload_to(instance, filename):
+    return f'rings/{instance.item_id}/images/{filename}'
 
 
-class SealImageType(models.TextChoices):
+class RingImageType(models.TextChoices):
     FRONT = 'front', 'رو'
     BACK = 'back', 'پشت'
     DETAIL = 'detail', 'جزئیات'
@@ -15,13 +15,13 @@ class SealImageType(models.TextChoices):
     OTHER = 'other', 'سایر'
 
 
-class SealImage(models.Model):
+class RingImage(models.Model):
     item = models.ForeignKey(
-        'seals.Seal', on_delete=models.CASCADE, related_name='images', verbose_name='مهر'
+        'rings.Ring', on_delete=models.CASCADE, related_name='images', verbose_name='انگشتر'
     )
-    image = models.ImageField(upload_to=seals_image_upload_to, verbose_name='تصویر')
+    image = models.ImageField(upload_to=rings_image_upload_to, verbose_name='تصویر')
     image_type = models.CharField(
-        max_length=20, choices=SealImageType.choices, default=SealImageType.OTHER, verbose_name='نوع تصویر'
+        max_length=20, choices=RingImageType.choices, default=RingImageType.OTHER, verbose_name='نوع تصویر'
     )
     caption = models.CharField(max_length=255, blank=True, default='', verbose_name='عنوان')
     ordering = models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')
@@ -30,22 +30,22 @@ class SealImage(models.Model):
     file_size = models.PositiveIntegerField(null=True, blank=True, verbose_name='حجم فایل')
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='uploaded_seals_images', verbose_name='آپلودکننده',
+        related_name='uploaded_rings_images', verbose_name='آپلودکننده',
     )
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ آپلود')
 
     class Meta:
         ordering = ['ordering', 'id']
-        verbose_name = 'تصویر مهر'
-        verbose_name_plural = 'تصاویر مهرها'
+        verbose_name = 'تصویر انگشتر'
+        verbose_name_plural = 'تصاویر انگشترها'
 
     def __str__(self):
         return f'{self.item_id}:{self.image_type}:{self.pk}'
 
 
-class SealPurchaseRecord(models.Model):
+class RingPurchaseRecord(models.Model):
     item = models.ForeignKey(
-        'seals.Seal', on_delete=models.CASCADE, related_name='purchase_records', verbose_name='مهر'
+        'rings.Ring', on_delete=models.CASCADE, related_name='purchase_records', verbose_name='انگشتر'
     )
     purchase_date = models.DateField(null=True, blank=True, verbose_name='تاریخ خرید')
     location = models.CharField(max_length=255, blank=True, default='', verbose_name='محل خرید')
@@ -59,21 +59,21 @@ class SealPurchaseRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='created_seals_purchases', verbose_name='ایجادکننده',
+        related_name='created_rings_purchases', verbose_name='ایجادکننده',
     )
 
     class Meta:
         ordering = ['-purchase_date', '-id']
-        verbose_name = 'سابقه خرید مهر'
-        verbose_name_plural = 'سوابق خرید مهرها'
+        verbose_name = 'سابقه خرید انگشتر'
+        verbose_name_plural = 'سوابق خرید انگشترها'
 
     def __str__(self):
-        return f'Purchase {self.pk} for seals {self.item_id}'
+        return f'Purchase {self.pk} for rings {self.item_id}'
 
 
-class SealValuationRecord(models.Model):
+class RingValuationRecord(models.Model):
     item = models.ForeignKey(
-        'seals.Seal', on_delete=models.CASCADE, related_name='valuation_records', verbose_name='مهر'
+        'rings.Ring', on_delete=models.CASCADE, related_name='valuation_records', verbose_name='انگشتر'
     )
     value = models.DecimalField(
         max_digits=14, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='ارزش',
@@ -85,13 +85,13 @@ class SealValuationRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='created_seals_valuations', verbose_name='ایجادکننده',
+        related_name='created_rings_valuations', verbose_name='ایجادکننده',
     )
 
     class Meta:
         ordering = ['-valuation_date', '-id']
-        verbose_name = 'سابقه ارزش‌گذاری مهر'
-        verbose_name_plural = 'سوابق ارزش‌گذاری مهرها'
+        verbose_name = 'سابقه ارزش‌گذاری انگشتر'
+        verbose_name_plural = 'سوابق ارزش‌گذاری انگشترها'
 
     def __str__(self):
-        return f'Valuation {self.pk} for seals {self.item_id}'
+        return f'Valuation {self.pk} for rings {self.item_id}'

@@ -4,15 +4,15 @@ from rest_framework import serializers
 from categories.models import Category
 from categories.serializers import CategorySerializer
 
-from .models import Banknote, BanknoteImage
-from .validators import validate_banknotes_image
+from .models import Stamp, StampImage
+from .validators import validate_stamps_image
 
 
-class BanknoteImageSerializer(serializers.ModelSerializer):
+class StampImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = BanknoteImage
+        model = StampImage
         fields = [
             'id', 'image', 'image_url', 'image_type', 'caption', 'ordering',
             'is_primary', 'original_filename', 'file_size', 'uploaded_by', 'uploaded_at',
@@ -31,7 +31,7 @@ class BanknoteImageSerializer(serializers.ModelSerializer):
         return None
 
     def validate_image(self, value):
-        validate_banknotes_image(value)
+        validate_stamps_image(value)
         return value
 
     def validate(self, attrs):
@@ -70,7 +70,7 @@ class BanknoteImageSerializer(serializers.ModelSerializer):
         return instance
 
 
-class BanknoteSerializer(serializers.ModelSerializer):
+class StampSerializer(serializers.ModelSerializer):
     category_detail = CategorySerializer(source='category', read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         source='category', queryset=Category.objects.all(), allow_null=True, required=False,
@@ -80,7 +80,7 @@ class BanknoteSerializer(serializers.ModelSerializer):
     images_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = Banknote
+        model = Stamp
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -99,18 +99,18 @@ class BanknoteSerializer(serializers.ModelSerializer):
         img = obj.images.filter(is_primary=True).first() or obj.images.first()
         if img is None:
             return None
-        return BanknoteImageSerializer(img, context=self.context).data
+        return StampImageSerializer(img, context=self.context).data
 
     def get_images_count(self, obj):
         return obj.images.count()
 
 
-class BanknoteListSerializer(serializers.ModelSerializer):
+class StampListSerializer(serializers.ModelSerializer):
     primary_image_url = serializers.SerializerMethodField()
     authenticity_display = serializers.CharField(source='get_authenticity_display', read_only=True)
 
     class Meta:
-        model = Banknote
+        model = Stamp
         fields = ['id', 'name', 'country', 'year', 'catalog_number', 'authenticity', 'authenticity_display', 'current_value', 'is_active', 'primary_image_url', 'created_at']
 
     def get_primary_image_url(self, obj):

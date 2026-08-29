@@ -4,15 +4,15 @@ from rest_framework import serializers
 from categories.models import Category
 from categories.serializers import CategorySerializer
 
-from .models import Banknote, BanknoteImage
-from .validators import validate_banknotes_image
+from .models import Antique, AntiqueImage
+from .validators import validate_antiques_image
 
 
-class BanknoteImageSerializer(serializers.ModelSerializer):
+class AntiqueImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = BanknoteImage
+        model = AntiqueImage
         fields = [
             'id', 'image', 'image_url', 'image_type', 'caption', 'ordering',
             'is_primary', 'original_filename', 'file_size', 'uploaded_by', 'uploaded_at',
@@ -31,7 +31,7 @@ class BanknoteImageSerializer(serializers.ModelSerializer):
         return None
 
     def validate_image(self, value):
-        validate_banknotes_image(value)
+        validate_antiques_image(value)
         return value
 
     def validate(self, attrs):
@@ -62,15 +62,15 @@ class BanknoteImageSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         uploaded = validated_data.get('image')
         if uploaded is not None:
-            validated_data['original_filename'] = getattr(uploaded, 'name', '') or ''
-            validated_data['file_size'] = getattr(uploaded, 'size', None)
+            validated_data.setdefault('original_filename', getattr(uploaded, 'name', '') or '')
+            validated_data.setdefault('file_size', getattr(uploaded, 'size', None))
         instance = super().update(instance, validated_data)
         if instance.is_primary:
             instance.item.images.exclude(pk=instance.pk).update(is_primary=False)
         return instance
 
 
-class BanknoteSerializer(serializers.ModelSerializer):
+class AntiqueSerializer(serializers.ModelSerializer):
     category_detail = CategorySerializer(source='category', read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         source='category', queryset=Category.objects.all(), allow_null=True, required=False,
@@ -80,38 +80,36 @@ class BanknoteSerializer(serializers.ModelSerializer):
     images_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = Banknote
+        model = Antique
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def get_fields(self):
         fields = super().get_fields()
-        # expose category_id write, hide raw category FK if present
         if 'category' in fields and 'category_id' in fields:
             fields['category'].read_only = True
-        fields['primary_image'] = serializers.SerializerMethodField()
-        fields['images_count'] = serializers.SerializerMethodField()
-        fields['category_detail'] = CategorySerializer(source='category', read_only=True)
-        fields['authenticity_display'] = serializers.CharField(source='get_authenticity_display', read_only=True)
         return fields
 
     def get_primary_image(self, obj):
         img = obj.images.filter(is_primary=True).first() or obj.images.first()
         if img is None:
             return None
-        return BanknoteImageSerializer(img, context=self.context).data
+        return AntiqueImageSerializer(img, context=self.context).data
 
     def get_images_count(self, obj):
         return obj.images.count()
 
 
-class BanknoteListSerializer(serializers.ModelSerializer):
+class AntiqueListSerializer(serializers.ModelSerializer):
     primary_image_url = serializers.SerializerMethodField()
     authenticity_display = serializers.CharField(source='get_authenticity_display', read_only=True)
 
     class Meta:
-        model = Banknote
-        fields = ['id', 'name', 'country', 'year', 'catalog_number', 'authenticity', 'authenticity_display', 'current_value', 'is_active', 'primary_image_url', 'created_at']
+        model = Antique
+        fields = [
+            'id', 'name', 'country', 'year', 'catalog_number', 'authenticity',
+            'authenticity_display', 'current_value', 'is_active', 'primary_image_url', 'created_at',
+        ]
 
     def get_primary_image_url(self, obj):
         img = obj.images.filter(is_primary=True).first() or obj.images.first()

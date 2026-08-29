@@ -1,11 +1,11 @@
 from rest_framework import serializers
 
-from .models import SealPurchaseRecord, SealValuationRecord
+from .models import TasbihPurchaseRecord, TasbihValuationRecord
 
 
-class SealPurchaseRecordSerializer(serializers.ModelSerializer):
+class TasbihPurchaseRecordSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SealPurchaseRecord
+        model = TasbihPurchaseRecord
         fields = [
             'id', 'purchase_date', 'location', 'seller', 'price', 'currency',
             'notes', 'created_at', 'created_by',
@@ -25,9 +25,9 @@ class SealPurchaseRecordSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class SealValuationRecordSerializer(serializers.ModelSerializer):
+class TasbihValuationRecordSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SealValuationRecord
+        model = TasbihValuationRecord
         fields = [
             'id', 'value', 'currency', 'valuation_date', 'source', 'notes',
             'created_at', 'created_by',

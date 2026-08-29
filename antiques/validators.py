@@ -11,7 +11,7 @@ def _ext(name: str) -> str:
     return '.' + name.rsplit('.', 1)[-1].lower()
 
 
-def validate_seals_image(uploaded_file):
+def validate_antiques_image(uploaded_file):
     max_bytes = getattr(settings, 'COLLECTION_IMAGE_MAX_BYTES', 10 * 1024 * 1024)
     name = getattr(uploaded_file, 'name', '') or ''
     content_type = getattr(uploaded_file, 'content_type', '') or ''

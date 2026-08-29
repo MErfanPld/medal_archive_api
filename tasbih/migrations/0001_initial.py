@@ -2,7 +2,7 @@
 
 import django.core.validators
 import django.db.models.deletion
-import seals.related_models
+import tasbih.related_models
 from django.conf import settings
 from django.db import migrations, models
 
@@ -18,21 +18,21 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Seal',
+            name='Tasbih',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(db_index=True, max_length=255, verbose_name='نام')),
-                ('seal_type', models.CharField(blank=True, default='', max_length=80, verbose_name='نوع مهر (رسمی، شخصی، ...)')),
-                ('owner_name', models.CharField(blank=True, default='', max_length=200, verbose_name='نام صاحب مهر')),
-                ('title_or_rank', models.CharField(blank=True, default='', max_length=200, verbose_name='لقب / سمت')),
-                ('inscription', models.TextField(blank=True, default='', verbose_name='متن حکاکی')),
-                ('script', models.CharField(blank=True, default='', max_length=80, verbose_name='خط (نستعلیق، ثلث، ...)')),
-                ('material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس')),
-                ('shape', models.CharField(blank=True, default='', max_length=80, verbose_name='شکل')),
-                ('dimensions', models.CharField(blank=True, default='', max_length=100, verbose_name='ابعاد')),
+                ('bead_material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس دانه')),
+                ('bead_count', models.PositiveIntegerField(blank=True, null=True, verbose_name='تعداد دانه')),
+                ('bead_size', models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True, verbose_name='اندازه دانه (میلی\u200cمتر)')),
+                ('total_length', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, verbose_name='طول کل (سانتی\u200cمتر)')),
+                ('tassel_material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس منگوله')),
+                ('spacer_count', models.PositiveIntegerField(blank=True, null=True, verbose_name='تعداد جداکننده')),
+                ('origin_mine', models.CharField(blank=True, default='', max_length=150, verbose_name='معدن / منبع')),
+                ('color', models.CharField(blank=True, default='', max_length=80, verbose_name='رنگ')),
                 ('weight', models.DecimalField(blank=True, decimal_places=4, max_digits=12, null=True, validators=[django.core.validators.MinValueValidator(0)], verbose_name='وزن (گرم)')),
-                ('handle_material', models.CharField(blank=True, default='', max_length=100, verbose_name='جنس دسته')),
-                ('ink_color', models.CharField(blank=True, default='', max_length=50, verbose_name='رنگ مرکب متداول')),
+                ('is_natural', models.BooleanField(default=True, verbose_name='طبیعی')),
+                ('craftsmanship', models.CharField(blank=True, default='', max_length=150, verbose_name='سبک ساخت')),
                 ('country', models.CharField(blank=True, db_index=True, default='', max_length=100, verbose_name='کشور')),
                 ('year', models.PositiveSmallIntegerField(blank=True, db_index=True, null=True, verbose_name='سال')),
                 ('historical_period', models.CharField(blank=True, default='', max_length=150, verbose_name='دوره تاریخی')),
@@ -53,19 +53,19 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(db_index=True, default=True, verbose_name='فعال')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='تاریخ به\u200cروزرسانی')),
-                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='seals_items', to='categories.category', verbose_name='دسته\u200cبندی')),
+                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tasbih_items', to='categories.category', verbose_name='دسته\u200cبندی')),
             ],
             options={
-                'verbose_name': 'مهر',
-                'verbose_name_plural': 'مهرها',
+                'verbose_name': 'تسبیح',
+                'verbose_name_plural': 'تسبیح\u200cها',
                 'ordering': ['-created_at'],
             },
         ),
         migrations.CreateModel(
-            name='SealImage',
+            name='TasbihImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to=seals.related_models.seals_image_upload_to, verbose_name='تصویر')),
+                ('image', models.ImageField(upload_to=tasbih.related_models.tasbih_image_upload_to, verbose_name='تصویر')),
                 ('image_type', models.CharField(choices=[('front', 'رو'), ('back', 'پشت'), ('detail', 'جزئیات'), ('certificate', 'گواهی'), ('other', 'سایر')], default='other', max_length=20, verbose_name='نوع تصویر')),
                 ('caption', models.CharField(blank=True, default='', max_length=255, verbose_name='عنوان')),
                 ('ordering', models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')),
@@ -73,17 +73,17 @@ class Migration(migrations.Migration):
                 ('original_filename', models.CharField(blank=True, default='', max_length=255, verbose_name='نام فایل اصلی')),
                 ('file_size', models.PositiveIntegerField(blank=True, null=True, verbose_name='حجم فایل')),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ آپلود')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='seals.seal', verbose_name='مهر')),
-                ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='uploaded_seals_images', to=settings.AUTH_USER_MODEL, verbose_name='آپلودکننده')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='tasbih.tasbih', verbose_name='تسبیح')),
+                ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='uploaded_tasbih_images', to=settings.AUTH_USER_MODEL, verbose_name='آپلودکننده')),
             ],
             options={
-                'verbose_name': 'تصویر مهر',
-                'verbose_name_plural': 'تصاویر مهرها',
+                'verbose_name': 'تصویر تسبیح',
+                'verbose_name_plural': 'تصاویر تسبیح\u200cها',
                 'ordering': ['ordering', 'id'],
             },
         ),
         migrations.CreateModel(
-            name='SealPurchaseRecord',
+            name='TasbihPurchaseRecord',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('purchase_date', models.DateField(blank=True, null=True, verbose_name='تاریخ خرید')),
@@ -93,17 +93,17 @@ class Migration(migrations.Migration):
                 ('currency', models.CharField(blank=True, default='', max_length=10, verbose_name='واحد پول')),
                 ('notes', models.TextField(blank=True, default='', verbose_name='یادداشت')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_seals_purchases', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='purchase_records', to='seals.seal', verbose_name='مهر')),
+                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_tasbih_purchases', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='purchase_records', to='tasbih.tasbih', verbose_name='تسبیح')),
             ],
             options={
-                'verbose_name': 'سابقه خرید مهر',
-                'verbose_name_plural': 'سوابق خرید مهرها',
+                'verbose_name': 'سابقه خرید تسبیح',
+                'verbose_name_plural': 'سوابق خرید تسبیح\u200cها',
                 'ordering': ['-purchase_date', '-id'],
             },
         ),
         migrations.CreateModel(
-            name='SealValuationRecord',
+            name='TasbihValuationRecord',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('value', models.DecimalField(decimal_places=2, max_digits=14, validators=[django.core.validators.MinValueValidator(0)], verbose_name='ارزش')),
@@ -112,25 +112,25 @@ class Migration(migrations.Migration):
                 ('source', models.CharField(blank=True, default='', max_length=255, verbose_name='منبع')),
                 ('notes', models.TextField(blank=True, default='', verbose_name='یادداشت')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
-                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_seals_valuations', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='valuation_records', to='seals.seal', verbose_name='مهر')),
+                ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_tasbih_valuations', to=settings.AUTH_USER_MODEL, verbose_name='ایجادکننده')),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='valuation_records', to='tasbih.tasbih', verbose_name='تسبیح')),
             ],
             options={
-                'verbose_name': 'سابقه ارزش\u200cگذاری مهر',
-                'verbose_name_plural': 'سوابق ارزش\u200cگذاری مهرها',
+                'verbose_name': 'سابقه ارزش\u200cگذاری تسبیح',
+                'verbose_name_plural': 'سوابق ارزش\u200cگذاری تسبیح\u200cها',
                 'ordering': ['-valuation_date', '-id'],
             },
         ),
         migrations.AddIndex(
-            model_name='seal',
-            index=models.Index(fields=['country', 'year'], name='seals_seal_country_7c1b84_idx'),
+            model_name='tasbih',
+            index=models.Index(fields=['country', 'year'], name='tasbih_tasb_country_3dad99_idx'),
         ),
         migrations.AddIndex(
-            model_name='seal',
-            index=models.Index(fields=['catalog_number'], name='seals_seal_catalog_37f18d_idx'),
+            model_name='tasbih',
+            index=models.Index(fields=['catalog_number'], name='tasbih_tasb_catalog_bca943_idx'),
         ),
         migrations.AddIndex(
-            model_name='seal',
-            index=models.Index(fields=['-created_at'], name='seals_seal_created_e8f6ca_idx'),
+            model_name='tasbih',
+            index=models.Index(fields=['-created_at'], name='tasbih_tasb_created_754de6_idx'),
         ),
     ]
