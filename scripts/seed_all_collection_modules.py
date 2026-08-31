@@ -5,9 +5,20 @@ Seed fake data for seals, tasbih, rings, knives, antiques, stamps.
 Run from project root:
   python scripts/seed_all_collection_modules.py
 """
+from __future__ import annotations
+
 import os
-import django
+import sys
+from pathlib import Path
+
+# Project root must be on sys.path when invoked as scripts/...
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+import django
 django.setup()
 
 from decimal import Decimal
